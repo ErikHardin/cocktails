@@ -1444,8 +1444,23 @@ async function fetchAICocktails(count = 10){
   try {
     const ownedCategories = [...new Set(bar.map(categoryOf))].sort();
     const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
-    const existingNames = [...COCKTAILS].map(c => c.name);
     const maxTokens = 4000;
+
+    // Case-insensitive owned-category check (Claude sometimes varies capitalization).
+    const ownsCategory = a => ownedCategories.some(o => o.toLowerCase() === a.toLowerCase());
+
+    // Purge any previously saved AI cocktails that had wrong-spirit substitutions;
+    // keep the rest so good accumulated suggestions survive.
+    AI_COCKTAILS.splice(0, AI_COCKTAILS.length,
+      ...AI_COCKTAILS.filter(c =>
+        c.ingredients
+          .filter(i => i.type === 'bar')
+          .every(i => Array.isArray(i.alt) && i.alt.some(ownsCategory))
+      )
+    );
+
+    // Build name lists after the purge so Claude doesn't re-avoid removed cocktails.
+    const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
 
     const prompt = `You are a cocktail recipe generator. Respond with ONLY a JSON array — no markdown, no commentary.
 
@@ -1485,9 +1500,7 @@ Rules:
     const parsed = JSON.parse(cleaned);
     if(!Array.isArray(parsed)) throw new Error('Unexpected response format');
 
-    // Replace existing AI cocktails so stale/bad entries are cleared.
-    AI_COCKTAILS.length = 0;
-    const existingLower = new Set(COCKTAILS.map(c => c.name.toLowerCase()));
+    const existingLower = new Set([...COCKTAILS, ...AI_COCKTAILS].map(c => c.name.toLowerCase()));
     let added = 0;
     parsed.forEach(item => {
       if(!item || !item.name || !Array.isArray(item.ingredients) || !Array.isArray(item.instructions)) return;
@@ -1497,7 +1510,7 @@ Rules:
         if(ing.type === 'bar'){
           const rawAlt = Array.isArray(ing.alt) && ing.alt.length ? ing.alt : [ing.label];
           // Keep only categories the user actually owns; filter out hallucinated substitutions.
-          const validAlt = rawAlt.filter(a => ownedCategories.includes(a));
+          const validAlt = rawAlt.filter(ownsCategory);
           return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: validAlt.length ? validAlt : rawAlt };
         }
         const pantryName = ing.pantry || ing.label || 'Misc';
@@ -1512,7 +1525,7 @@ Rules:
       // Skip cocktails where any bar ingredient has no owned category — Claude substituted wrong spirits.
       const allBarIngsSatisfied = ingredients
         .filter(i => i.type === 'bar')
-        .every(i => i.alt.some(a => ownedCategories.includes(a)));
+        .every(i => i.alt.some(ownsCategory));
       if(!allBarIngsSatisfied) return;
 
       AI_COCKTAILS.push({
