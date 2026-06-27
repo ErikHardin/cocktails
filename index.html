@@ -1052,7 +1052,8 @@ const DEFAULT_BAR = [
 ];
 
 /* ---------------- STATE ---------------- */
-let bar = [...DEFAULT_BAR]; // array of bottle names (must exist in LIQUOR_DB or be custom) — overwritten once Firebase loads
+let bar = [...DEFAULT_BAR]; // array of bottle names — overwritten once Firebase loads
+let liquorDb = [...LIQUOR_DB]; // overwritten by Firebase; LIQUOR_DB is the seed
 let pantry = {};
 PANTRY_ITEMS.forEach(p => pantry[p] = PANTRY_DEFAULT_CHECKED.includes(p));
 let currentFilter = "all";
@@ -1063,6 +1064,17 @@ let AI_COCKTAILS = []; // cocktails suggested live by Claude based on current ba
 
 // Hooks the Firebase module script (bottom of page) calls into.
 window.getDefaultBar = function(){ return DEFAULT_BAR; };
+window.getDefaultLiquorDb = function(){ return LIQUOR_DB; };
+window.getDefaultSpiritTypes = function(){ return FAMILY_COLOR; };
+window.applyLiquorDbUpdate = function(data){
+  liquorDb = Array.isArray(data) ? data.filter(Boolean) : Object.values(data).filter(Boolean);
+  renderBar();
+  renderCocktails();
+};
+window.applySpiritTypesUpdate = function(data){
+  spiritTypes = data || {};
+  renderBar();
+};
 window.applyBarUpdate = function(newBar){
   bar = newBar;
   renderBar();
@@ -1105,7 +1117,7 @@ window.applyAICocktailsUpdate = function(saved){
 };
 
 function categoryOf(bottleName){
-  const hit = LIQUOR_DB.find(l => l.name.toLowerCase() === bottleName.toLowerCase());
+  const hit = liquorDb.find(l => l.name.toLowerCase() === bottleName.toLowerCase());
   return hit ? hit.category : bottleName; // custom entries: treat name as its own category
 }
 function barCategories(){
@@ -1129,7 +1141,7 @@ const suggestBox = document.getElementById('suggestBox');
 bottleInput.addEventListener('input', ()=>{
   const q = bottleInput.value.trim().toLowerCase();
   if(!q){ suggestBox.classList.remove('show'); return; }
-  const matches = LIQUOR_DB.filter(l =>
+  const matches = liquorDb.filter(l =>
     l.name.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)
   ).slice(0,8);
   if(matches.length===0){ suggestBox.classList.remove('show'); return; }
@@ -1193,7 +1205,8 @@ const FAMILY_COLOR = {
   "Brandy":"#9c5a3c","B&B Liqueur":"#8a6a4a","Centerbe":"#7a9a4a","Pear Liqueur":"#a8a85a",
   "Butter Pecan Specialty Spirit":"#9c7a4a","Gold Rum":"#c2954a","Coconut Rum":"#d8cba0","Coffee Rum":"#5a4233",
 };
-function familyColor(cat){ return FAMILY_COLOR[cat] || 'var(--muted)'; }
+let spiritTypes = {...FAMILY_COLOR}; // overwritten by Firebase; FAMILY_COLOR is the seed
+function familyColor(cat){ return spiritTypes[cat] || 'var(--muted)'; }
 
 // Glassware shown as real emoji rather than drawn icons.
 // Unicode doesn't have a dedicated highball/copper-mug glyph, so those map to the closest visual match.
@@ -1551,6 +1564,8 @@ renderCocktails();
   const barRef = ref(db, 'bar');
   const pantryRef = ref(db, 'pantry');
   const aiRef = ref(db, 'aiCocktails');
+  const liquorDbRef = ref(db, 'liquorDb');
+  const spiritTypesRef = ref(db, 'spiritTypes');
 
   function setSyncStatus(msg, isError){
     let el = document.getElementById('syncStatus');
@@ -1594,6 +1609,29 @@ renderCocktails();
       setSyncStatus('✓ Pantry synced', false);
     }, (err) => {
       console.error('Firebase pantry read failed:', err);
+    });
+
+    onValue(liquorDbRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data === null){
+        if(window.getDefaultLiquorDb) set(liquorDbRef, window.getDefaultLiquorDb());
+        return;
+      }
+      const arr = Array.isArray(data) ? data.filter(Boolean) : Object.values(data).filter(Boolean);
+      if(window.applyLiquorDbUpdate) window.applyLiquorDbUpdate(arr);
+    }, (err) => {
+      console.error('Firebase liquorDb read failed:', err);
+    });
+
+    onValue(spiritTypesRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data === null){
+        if(window.getDefaultSpiritTypes) set(spiritTypesRef, window.getDefaultSpiritTypes());
+        return;
+      }
+      if(window.applySpiritTypesUpdate) window.applySpiritTypesUpdate(data);
+    }, (err) => {
+      console.error('Firebase spiritTypes read failed:', err);
     });
   }).catch(err => {
     console.error('Firebase auth failed — falling back to local-only inventory:', err);
