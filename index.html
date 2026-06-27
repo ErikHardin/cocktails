@@ -1236,6 +1236,9 @@ window.applyPantryUpdate = function(data){
   renderPantry();
   renderCocktails();
 };
+// Labels that are clearly fresh/pantry ingredients, not spirits — used to re-type misclassified bar ingredients.
+const FRESH_LABEL = /\b(juice|syrup|soda|water|bitters|beer|cream|egg|milk|mint|honey|sugar|ice|tonic)\b/i;
+
 // Purge and sanitize AI_COCKTAILS based on current bar state, save to Firebase if anything changed.
 // Safe to call any time; no-ops if bar isn't loaded yet.
 function purgeInvalidAICocktails(){
@@ -1247,6 +1250,14 @@ function purgeInvalidAICocktails(){
     .map(c => ({
       ...c,
       ingredients: c.ingredients.map(i => {
+        // Re-type bar ingredients whose labels are clearly fresh items (juice, syrup, etc.)
+        if(i.type === 'bar' && FRESH_LABEL.test(i.label)){
+          const pantryName = i.label;
+          if(!PANTRY_ITEMS.some(p => p.toLowerCase() === pantryName.toLowerCase()))
+            PANTRY_ITEMS.push(pantryName);
+          if(pantry[pantryName] === undefined) pantry[pantryName] = false;
+          return { label: i.label, amount: i.amount, type: 'fresh', pantry: pantryName };
+        }
         if(i.type !== 'bar' || !Array.isArray(i.alt)) return i;
         const ownedAlts = i.alt.filter(ownsCategory);
         if(!ownedAlts.length) return i;
