@@ -1715,6 +1715,7 @@ Each item must have exactly this shape:
 Rules:
 - Only include a cocktail if EVERY bar ingredient it requires is present in the owned categories list. If a recipe needs Sweet Vermouth and Sweet Vermouth is not owned, omit that cocktail entirely — do NOT substitute a different spirit.
 - "alt" arrays must only contain category names from the owned list that genuinely belong in that ingredient slot. Only spirits within the same base-spirit family may substitute (e.g., Bourbon ↔ Rye Whiskey are both whiskeys). NEVER cross families: Applejack is an apple brandy — it is NOT a substitute for any whiskey (Rye, Bourbon, Scotch, etc.). Rum ≠ Brandy. Gin ≠ Vodka. Tequila ≠ Mezcal ≠ anything else.
+- Every ingredient that goes into the glass — juices, syrups, mixers, bitters, garnishes — must appear as its own entry in the ingredients array with type:"fresh". Never mention an ingredient only inside the instructions text.
 - "pantry" values must be capitalized short names like "Lime juice".
 - 3 steps max per cocktail.
 - Output ONLY the JSON array.`;
