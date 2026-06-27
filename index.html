@@ -989,6 +989,25 @@ window.applyBarUpdate = function(newBar){
   renderBar();
   renderCocktails();
 };
+window.applyAICocktailsUpdate = function(saved){
+  if(!Array.isArray(saved)) return;
+  saved.filter(Boolean).forEach(c => {
+    if(!c || !c.name || !Array.isArray(c.ingredients)) return;
+    c.ingredients.forEach(ing => {
+      if(ing.type === 'fresh'){
+        const p = ing.pantry || ing.label;
+        if(p && !PANTRY_ITEMS.some(x => x.toLowerCase() === p.toLowerCase())){
+          PANTRY_ITEMS.push(p);
+          if(pantry[p] === undefined) pantry[p] = false;
+        }
+      }
+    });
+    if(!AI_COCKTAILS.some(x => x.name.toLowerCase() === c.name.toLowerCase()))
+      AI_COCKTAILS.push({...c, isAI: true});
+  });
+  renderPantry();
+  renderCocktails();
+};
 
 function categoryOf(bottleName){
   const hit = LIQUOR_DB.find(l => l.name.toLowerCase() === bottleName.toLowerCase());
@@ -1364,6 +1383,7 @@ Rules:
     status.textContent = added > 0
       ? `Added ${added} new cocktail idea${added===1?'':'s'} — look for the ✨ AI tag below.`
       : `Claude didn't return any new ideas this time — try fetching more.`;
+    if(window.saveAICocktailsToFirebase) window.saveAICocktailsToFirebase(AI_COCKTAILS);
     renderPantry();
     renderCocktails();
   } catch(err){
@@ -1407,6 +1427,7 @@ renderCocktails();
   const db = getDatabase(app);
   const auth = getAuth(app);
   const barRef = ref(db, 'bar');
+  const aiRef = ref(db, 'aiCocktails');
 
   function setSyncStatus(msg, isError){
     let el = document.getElementById('syncStatus');
@@ -1447,6 +1468,18 @@ renderCocktails();
   // Exposed for the main app script to call whenever a bottle is added or removed.
   window.saveBarToFirebase = function(barArray){
     set(barRef, barArray).catch(err => console.error('Firebase save failed:', err));
+  };
+
+  // Load saved AI cocktails on startup, then keep in sync.
+  onValue(aiRef, (snapshot) => {
+    const data = snapshot.val();
+    if(!data) return;
+    const arr = Array.isArray(data) ? data : Object.values(data);
+    if(window.applyAICocktailsUpdate) window.applyAICocktailsUpdate(arr);
+  });
+
+  window.saveAICocktailsToFirebase = function(cocktails){
+    set(aiRef, cocktails).catch(err => console.error('Firebase AI save failed:', err));
   };
 </script>
 
