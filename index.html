@@ -1288,30 +1288,27 @@ async function fetchAICocktails(count = 10, isInitial = false){
   }
 
   try {
-    const knownCategories = [...new Set(LIQUOR_DB.map(l => l.category))];
-    const ownedBottles = bar.map(name => `${name} (${categoryOf(name)})`).join(', ');
+    const ownedCategories = [...new Set(bar.map(categoryOf))].sort();
     const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
-    const pantryMissing = PANTRY_ITEMS.filter(p => !pantry[p]);
     const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
     const maxTokens = 4000;
 
-    const prompt = `You are a cocktail recipe generator for a home bar app called "The Hardin Bar". Respond with ONLY a JSON array — no markdown fences, no preamble, no commentary, nothing before or after the array.
+    const prompt = `You are a cocktail recipe generator. Respond with ONLY a JSON array — no markdown, no commentary.
 
-Owned bottles (name and category): ${ownedBottles}.
-Recipes already in the app, do not repeat these names: ${existingNames.join(', ')}.
-Pantry items currently on hand: ${pantryHave.join(', ') || 'none'}.
-Pantry items not on hand: ${pantryMissing.join(', ') || 'none'}.
+Spirit categories owned: ${ownedCategories.join(', ')}.
+Pantry items on hand: ${pantryHave.join(', ') || 'none'}.
+Do not repeat these cocktail names: ${existingNames.join(', ')}.
 
-Suggest ${count} real, legitimate cocktails that make good use of the owned bottles — prioritize bottles/categories not already used by the existing recipe list, especially specialty bottles like amari, pisco, applejack, absinthe, fruit liqueurs, etc. if owned. No invented drinks. No duplicate names within your own list either.
+Suggest ${count} real cocktails using the owned categories. Prioritize specialty categories (Amaro, Pisco, Applejack, Absinthe, Crème de Violette, etc.). No invented drinks.
 
-Return a JSON array where each item has exactly this shape:
-{"name":"Cocktail Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"short garnish or None","ingredients":[{"label":"Display label","amount":"e.g. 2 oz","type":"bar","alt":["CategoryName"]},{"label":"Display label","amount":"e.g. 1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
+Each item must have exactly this shape:
+{"name":"Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"garnish or None","ingredients":[{"label":"label","amount":"2 oz","type":"bar","alt":["CategoryName"]},{"label":"label","amount":"1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
 
 Rules:
-- For "type":"bar" ingredients, "alt" must use a category name from this list when possible: ${knownCategories.join(', ')}. If the ingredient calls for a specialty bottle's own category (like an Amaro or a Pisco the user owns), use that category name as it appears in the owned-bottles list above.
-- For "type":"fresh" ingredients, "pantry" should be a short common name, capitalized like "Lime juice" or "Simple syrup".
-- Keep instructions to 3 short steps.
-- Output ONLY the JSON array, nothing else.`;
+- "alt" arrays must use exact category names from the owned list above.
+- "pantry" values must be capitalized short names like "Lime juice".
+- 3 steps max per cocktail.
+- Output ONLY the JSON array.`;
 
     const response = await fetch(AI_WORKER_URL, {
       method: "POST",
