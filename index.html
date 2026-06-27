@@ -1673,10 +1673,21 @@ async function fetchAICocktails(count = 10){
     // Case-insensitive owned-category check (Claude sometimes varies capitalization).
     const ownsCategory = a => ownedCategories.some(o => o.toLowerCase() === a.toLowerCase());
 
-    // Purge any previously saved AI cocktails that had wrong-spirit substitutions;
-    // keep the rest so good accumulated suggestions survive.
-    AI_COCKTAILS.splice(0, AI_COCKTAILS.length,
-      ...AI_COCKTAILS.filter(c =>
+    // Clean and purge previously saved AI cocktails.
+    // First, strip wrong-family categories from each ingredient's alt array.
+    // Then drop any cocktail where a bar ingredient has no remaining valid alt.
+    const cleanedCocktails = AI_COCKTAILS
+      .map(c => ({
+        ...c,
+        ingredients: c.ingredients.map(i => {
+          if(i.type !== 'bar' || !Array.isArray(i.alt)) return i;
+          const ownedAlts = i.alt.filter(ownsCategory);
+          if(!ownedAlts.length) return i; // nothing owned — caught by filter below
+          const familyAlts = validAltsForLabel(i.label, ownedAlts);
+          return familyAlts.length ? { ...i, alt: familyAlts } : i; // strip wrong-family alts; if all wrong, filter below drops cocktail
+        })
+      }))
+      .filter(c =>
         c.ingredients
           .filter(i => i.type === 'bar')
           .every(i => {
@@ -1684,8 +1695,8 @@ async function fetchAICocktails(count = 10){
             const ownedAlts = i.alt.filter(ownsCategory);
             return validAltsForLabel(i.label, ownedAlts).length > 0;
           })
-      )
-    );
+      );
+    AI_COCKTAILS.splice(0, AI_COCKTAILS.length, ...cleanedCocktails);
 
     // Build name lists after the purge so Claude doesn't re-avoid removed cocktails.
     const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
