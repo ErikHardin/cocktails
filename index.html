@@ -610,7 +610,7 @@
 // Deploy worker.js (included alongside this file) to Cloudflare Workers,
 // then paste its URL here. The worker holds your Anthropic API key server-side
 // so it's never exposed in this client-side file.
-const AI_WORKER_URL = location.origin;
+const AI_WORKER_URL = location.origin + "/api";
 
 /* ============================================================================ */
 
@@ -1323,7 +1323,10 @@ Rules:
       })
     });
 
-    if(!response.ok) throw new Error('Request failed: ' + response.status);
+    if(!response.ok){
+      const errText = await response.text().catch(() => '');
+      throw new Error(`HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
     const data = await response.json();
     const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
     const cleaned = textBlocks.replace(/```json|```/g, '').trim();
@@ -1368,7 +1371,7 @@ Rules:
     renderCocktails();
   } catch(err){
     console.error(err);
-    status.textContent = "Couldn't get cocktail ideas right now — try again in a moment.";
+    status.textContent = `Error: ${err.message}`;
     status.classList.add('error');
   } finally {
     moreBtn.style.display = 'inline-block';
