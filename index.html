@@ -610,7 +610,7 @@
 // Deploy worker.js (included alongside this file) to Cloudflare Workers,
 // then paste its URL here. The worker holds your Anthropic API key server-side
 // so it's never exposed in this client-side file.
-const AI_WORKER_URL = "https://YOUR-WORKER-SUBDOMAIN.workers.dev";
+const AI_WORKER_URL = location.origin;
 
 /* ============================================================================ */
 
@@ -1408,6 +1408,21 @@ renderCocktails();
   const auth = getAuth(app);
   const barRef = ref(db, 'bar');
 
+  function setSyncStatus(msg, isError){
+    let el = document.getElementById('syncStatus');
+    if(!el){
+      el = document.createElement('p');
+      el.id = 'syncStatus';
+      el.style.cssText = 'position:fixed;bottom:16px;right:16px;font-size:0.75rem;padding:6px 12px;border-radius:6px;z-index:200;margin:0;font-family:JetBrains Mono,monospace;';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.background = isError ? 'var(--danger)' : 'var(--bg-card)';
+    el.style.border = `1px solid ${isError ? 'var(--danger)' : 'var(--line)'}`;
+    el.style.color = isError ? '#fff' : 'var(--muted)';
+    if(!isError) setTimeout(() => el.remove(), 3000);
+  }
+
   signInAnonymously(auth).then(() => {
     onValue(barRef, (snapshot) => {
       const data = snapshot.val();
@@ -1419,9 +1434,14 @@ renderCocktails();
       // data is stored as an object ({0: "...", 1: "..."}) or array depending on how it was written — normalize to an array.
       const barArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
       if(window.applyBarUpdate) window.applyBarUpdate(barArray);
+      setSyncStatus('✓ Bar synced', false);
+    }, (err) => {
+      console.error('Firebase read failed:', err);
+      setSyncStatus('⚠ Sync failed: ' + err.message, true);
     });
   }).catch(err => {
     console.error('Firebase auth failed — falling back to local-only inventory:', err);
+    setSyncStatus('⚠ Firebase auth failed: ' + err.message, true);
   });
 
   // Exposed for the main app script to call whenever a bottle is added or removed.
