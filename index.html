@@ -282,16 +282,17 @@
     color:var(--cream);
   }
 
+  /* --- Cocktail grid: mobile-first 3-column compact --- */
   .cocktail-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-    gap:18px;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
   }
   .ticket{
     background:var(--bg-card);
     border:1px solid var(--line);
     border-radius:4px;
-    padding:20px 20px 18px;
+    padding:10px 8px 8px;
     position:relative;
     box-shadow:var(--shadow);
     background-image:
@@ -307,33 +308,35 @@
   }
   .ticket-head{
     display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:12px;
+    flex-direction:column;
+    gap:4px;
+    margin-bottom:6px;
   }
   .ticket-head h3{
     font-family:'Fraunces',serif;
-    font-size:1.2rem;
+    font-size:0.75rem;
+    line-height:1.25;
     margin:0;
     font-weight:600;
   }
   .stamp{
     font-family:'JetBrains Mono',monospace;
-    font-size:0.65rem;
+    font-size:0.52rem;
     letter-spacing:0.08em;
     text-transform:uppercase;
-    padding:4px 9px;
+    padding:2px 5px;
     border-radius:4px;
     border:1.5px solid currentColor;
     transform:rotate(3deg);
     white-space:nowrap;
     font-weight:600;
+    align-self:flex-start;
   }
   .stamp.ready{ color:var(--herb); }
   .stamp.almost{ color:var(--amber-bright); }
   .stamp.missing{ color:var(--danger); }
 
-  .ing-list{ list-style:none; margin:0 0 12px; padding:0; }
+  .ing-list{ list-style:none; margin:0 0 12px; padding:0; display:none; }
   .ing-list li{
     font-size:0.85rem;
     padding:4px 0;
@@ -354,19 +357,31 @@
 
   .ticket-foot{
     border-top:1px solid var(--line);
-    padding-top:10px;
-    font-size:0.78rem;
+    padding-top:6px;
+    font-size:0.65rem;
     color:var(--muted);
     font-family:'JetBrains Mono',monospace;
     display:flex;
     align-items:center;
-    gap:8px;
+    gap:4px;
   }
   .glass-icon{
     flex:none;
-    font-size:1.3rem;
+    font-size:1rem;
     line-height:1;
     filter:saturate(1.1);
+  }
+
+  /* --- Desktop: restore full card layout --- */
+  @media(min-width:600px){
+    .cocktail-grid{ grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .ticket{ padding:20px 20px 18px; }
+    .ticket-head{ flex-direction:row; justify-content:space-between; align-items:flex-start; gap:0; margin-bottom:12px; }
+    .ticket-head h3{ font-size:1.2rem; }
+    .stamp{ font-size:0.65rem; padding:4px 9px; align-self:auto; }
+    .ing-list{ display:block; }
+    .ticket-foot{ padding-top:10px; font-size:0.78rem; gap:8px; }
+    .glass-icon{ font-size:1.3rem; }
   }
   .modal-glass{
     display:flex;
@@ -402,16 +417,43 @@
   .ai-status.error{ color:var(--danger); }
   .ai-badge{
     font-family:'JetBrains Mono',monospace;
-    font-size:0.62rem;
+    font-size:0.52rem;
     letter-spacing:0.06em;
     text-transform:uppercase;
     color:var(--amber-bright);
     border:1px solid var(--amber);
     border-radius:4px;
-    padding:2px 6px;
-    margin-right:6px;
+    padding:1px 4px;
+    margin-right:4px;
     white-space:nowrap;
   }
+  @media(min-width:600px){
+    .ai-badge{ font-size:0.62rem; padding:2px 6px; margin-right:6px; }
+  }
+
+  .spirit-row{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:2px;
+  }
+  .spirit-row::-webkit-scrollbar{ display:none; }
+  .spirit-row button{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:6px 13px;
+    border-radius:999px;
+    font-size:0.75rem;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .spirit-row button.active{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600; }
 
   .empty-state{
     text-align:center;
@@ -585,12 +627,13 @@
     <p class="section-sub">Matched against your bar and pantry, live.</p>
 
     <div class="ai-more-row">
-      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(10)" style="display:none;">✨ Fetch more cocktails</button>
+      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails()">✨ Fetch cocktails</button>
     </div>
 
     <p id="aiStatus" class="ai-status"></p>
 
     <div class="filter-row" id="filterRow"></div>
+    <div class="spirit-row" id="spiritRow"></div>
     <div id="shopListBox"></div>
     <div class="cocktail-grid" id="cocktailGrid"></div>
   </section>
@@ -979,8 +1022,8 @@ let bar = [...DEFAULT_BAR]; // array of bottle names (must exist in LIQUOR_DB or
 let pantry = {};
 PANTRY_ITEMS.forEach(p => pantry[p] = PANTRY_DEFAULT_CHECKED.includes(p));
 let currentFilter = "all";
+let currentSpirit = "all";
 let AI_COCKTAILS = []; // cocktails suggested live by Claude based on current bar + pantry
-let aiFetchedOnce = false; // tracks whether we've auto-fetched suggestions for this page load
 
 // Hooks the Firebase module script (bottom of page) calls into.
 window.getDefaultBar = function(){ return DEFAULT_BAR; };
@@ -1006,6 +1049,7 @@ window.applyAICocktailsUpdate = function(saved){
       AI_COCKTAILS.push({...c, isAI: true});
   });
   renderPantry();
+  renderSpiritFilter();
   renderCocktails();
 };
 
@@ -1024,10 +1068,6 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab === 'cocktails' && !aiFetchedOnce){
-      aiFetchedOnce = true;
-      fetchAICocktails(10, true);
-    }
   });
 });
 
@@ -1192,6 +1232,29 @@ document.querySelectorAll('#filterRow button').forEach(btn=>{
   });
 });
 
+function renderSpiritFilter(){
+  const allCocktails = [...AI_COCKTAILS, ...COCKTAILS];
+  const spirits = new Set();
+  allCocktails.forEach(c =>
+    c.ingredients.forEach(ing => {
+      if(ing.type === 'bar') ing.alt.forEach(a => spirits.add(a));
+    })
+  );
+  const sorted = [...spirits].sort();
+  const row = document.getElementById('spiritRow');
+  row.innerHTML = [
+    `<button data-spirit="all" class="${currentSpirit==='all'?'active':''}">All spirits</button>`,
+    ...sorted.map(s => `<button data-spirit="${s}" class="${currentSpirit===s?'active':''}">${s}</button>`)
+  ].join('');
+  row.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSpirit = btn.dataset.spirit;
+      renderSpiritFilter();
+      renderCocktails();
+    });
+  });
+}
+
 function evaluateCocktail(c){
   const cats = barCategories();
   const missingBar = [];
@@ -1232,7 +1295,12 @@ function renderCocktails(){
     shopBox.innerHTML = '';
   }
 
-  const filtered = evaluated.filter(({ev}) => currentFilter==='all' || ev.status===currentFilter);
+  let filtered = evaluated.filter(({ev}) => currentFilter==='all' || ev.status===currentFilter);
+  if(currentSpirit !== 'all'){
+    filtered = filtered.filter(({c}) =>
+      c.ingredients.some(ing => ing.type==='bar' && ing.alt.includes(currentSpirit))
+    );
+  }
 
   if(filtered.length===0){
     document.getElementById('cocktailGrid').innerHTML = `<div class="empty-state">Nothing matches this filter yet. Add a bottle or check off a pantry item.</div>`;
@@ -1292,19 +1360,14 @@ function closeModal(){
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeModal(); });
 
 /* ---------------- AI COCKTAIL SUGGESTIONS ---------------- */
-async function fetchAICocktails(count = 10, isInitial = false){
+async function fetchAICocktails(count = 10){
   const moreBtn = document.getElementById('aiMoreBtn');
   const status = document.getElementById('aiStatus');
 
   status.classList.remove('error');
-  if(isInitial){
-    status.textContent = `✨ Asking Claude for ${count} cocktail ideas based on your bar…`;
-    moreBtn.style.display = 'none';
-  } else {
-    moreBtn.disabled = true;
-    moreBtn.textContent = '✨ Mixing more ideas…';
-    status.textContent = '';
-  }
+  moreBtn.disabled = true;
+  moreBtn.textContent = '✨ Fetching…';
+  status.textContent = '';
 
   try {
     const ownedCategories = [...new Set(bar.map(categoryOf))].sort();
@@ -1385,21 +1448,22 @@ Rules:
       : `Claude didn't return any new ideas this time — try fetching more.`;
     if(window.saveAICocktailsToFirebase) window.saveAICocktailsToFirebase(AI_COCKTAILS);
     renderPantry();
+    renderSpiritFilter();
     renderCocktails();
   } catch(err){
     console.error(err);
     status.textContent = `Error: ${err.message}`;
     status.classList.add('error');
   } finally {
-    moreBtn.style.display = 'inline-block';
     moreBtn.disabled = false;
-    moreBtn.textContent = '✨ Fetch more cocktails';
+    moreBtn.textContent = '✨ Fetch cocktails';
   }
 }
 
 /* ---------------- INIT ---------------- */
 renderBar();
 renderPantry();
+renderSpiritFilter();
 renderCocktails();
 </script>
 
