@@ -1258,6 +1258,15 @@ function purgeInvalidAICocktails(){
           if(pantry[pantryName] === undefined) pantry[pantryName] = false;
           return { label: i.label, amount: i.amount, type: 'fresh', pantry: pantryName };
         }
+        // Fix fresh ingredients where the pantry key doesn't match the label (AI error).
+        // e.g. label:"Orange juice", pantry:"Lemon juice" — use the label as the canonical key.
+        if(i.type === 'fresh' && i.label && i.pantry && i.label.toLowerCase() !== i.pantry.toLowerCase()){
+          const pantryName = i.label;
+          if(!PANTRY_ITEMS.some(p => p.toLowerCase() === pantryName.toLowerCase()))
+            PANTRY_ITEMS.push(pantryName);
+          if(pantry[pantryName] === undefined) pantry[pantryName] = false;
+          return { ...i, pantry: pantryName };
+        }
         if(i.type !== 'bar' || !Array.isArray(i.alt)) return i;
         const ownedAlts = i.alt.filter(ownsCategory);
         if(!ownedAlts.length) return i;
