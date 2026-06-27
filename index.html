@@ -1444,7 +1444,7 @@ async function fetchAICocktails(count = 10){
   try {
     const ownedCategories = [...new Set(bar.map(categoryOf))].sort();
     const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
-    const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
+    const existingNames = [...COCKTAILS].map(c => c.name);
     const maxTokens = 4000;
 
     const prompt = `You are a cocktail recipe generator. Respond with ONLY a JSON array — no markdown, no commentary.
@@ -1453,13 +1453,14 @@ Spirit categories owned: ${ownedCategories.join(', ')}.
 Pantry items on hand: ${pantryHave.join(', ') || 'none'}.
 Do not repeat these cocktail names: ${existingNames.join(', ')}.
 
-Suggest ${count} real cocktails using the owned categories. Prioritize specialty categories (Amaro, Pisco, Applejack, Absinthe, Crème de Violette, etc.). No invented drinks.
+Suggest ${count} real cocktails that can be made using ONLY the owned categories above. Prioritize specialty categories (Amaro, Pisco, Applejack, Absinthe, Crème de Violette, etc.). No invented drinks.
 
 Each item must have exactly this shape:
 {"name":"Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"garnish or None","ingredients":[{"label":"label","amount":"2 oz","type":"bar","alt":["CategoryName"]},{"label":"label","amount":"1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
 
 Rules:
-- "alt" arrays must use exact category names from the owned list above.
+- Only include a cocktail if EVERY bar ingredient it requires is present in the owned categories list. If a recipe needs Sweet Vermouth and Sweet Vermouth is not owned, omit that cocktail entirely — do NOT substitute a different spirit.
+- "alt" arrays must only contain category names from the owned list that genuinely belong in that ingredient slot. Genuine culinary substitutes are allowed (e.g., Bourbon and Rye Whiskey are interchangeable in many recipes), but never list an unrelated spirit as an alternative.
 - "pantry" values must be capitalized short names like "Lime juice".
 - 3 steps max per cocktail.
 - Output ONLY the JSON array.`;
@@ -1484,7 +1485,9 @@ Rules:
     const parsed = JSON.parse(cleaned);
     if(!Array.isArray(parsed)) throw new Error('Unexpected response format');
 
-    const existingLower = new Set([...COCKTAILS, ...AI_COCKTAILS].map(c => c.name.toLowerCase()));
+    // Replace existing AI cocktails so stale/bad entries are cleared.
+    AI_COCKTAILS.length = 0;
+    const existingLower = new Set(COCKTAILS.map(c => c.name.toLowerCase()));
     let added = 0;
     parsed.forEach(item => {
       if(!item || !item.name || !Array.isArray(item.ingredients) || !Array.isArray(item.instructions)) return;
@@ -1492,7 +1495,10 @@ Rules:
 
       const ingredients = item.ingredients.map(ing => {
         if(ing.type === 'bar'){
-          return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: Array.isArray(ing.alt) && ing.alt.length ? ing.alt : [ing.label] };
+          const rawAlt = Array.isArray(ing.alt) && ing.alt.length ? ing.alt : [ing.label];
+          // Keep only categories the user actually owns; filter out hallucinated substitutions.
+          const validAlt = rawAlt.filter(a => ownedCategories.includes(a));
+          return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: validAlt.length ? validAlt : rawAlt };
         }
         const pantryName = ing.pantry || ing.label || 'Misc';
         // If Claude introduces a new pantry item we don't have a checkbox for yet, add it so it's toggleable.
@@ -1502,6 +1508,12 @@ Rules:
         }
         return { label: ing.label || pantryName, amount: ing.amount || '', type:'fresh', pantry: pantryName };
       });
+
+      // Skip cocktails where any bar ingredient has no owned category — Claude substituted wrong spirits.
+      const allBarIngsSatisfied = ingredients
+        .filter(i => i.type === 'bar')
+        .every(i => i.alt.some(a => ownedCategories.includes(a)));
+      if(!allBarIngsSatisfied) return;
 
       AI_COCKTAILS.push({
         name: item.name,
