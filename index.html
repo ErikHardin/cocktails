@@ -609,6 +609,15 @@
     font-family:'JetBrains Mono',monospace;
     font-size:0.78rem;
   }
+  .modal-bottle-hint{
+    display:block;
+    font-size:0.74rem;
+    color:var(--amber-bright);
+    font-family:'JetBrains Mono',monospace;
+    margin-top:3px;
+    letter-spacing:0.01em;
+    opacity:0.85;
+  }
 </style>
 </head>
 <body>
@@ -1411,13 +1420,19 @@ function openCocktailModal(name){
     almost:{label:"Grab pantry items first", cls:"almost"},
     missing:{label:"Need a bottle first", cls:"missing"},
   };
+  const ingRows = ev.haveList.map((i, idx) => {
+    const ing = c.ingredients[idx];
+    const bottles = ing.type === 'bar' ? bar.filter(b => ing.alt.includes(categoryOf(b))) : [];
+    const bottleHint = bottles.length ? `<span class="modal-bottle-hint">${bottles.join(' · ')}</span>` : '';
+    return `<li><span style="color:${i.have ? 'var(--cream)' : 'var(--danger)'}">${i.label}${i.have ? '' : ' (need to get)'}${bottleHint}</span><span class="amt">${i.amount}</span></li>`;
+  }).join('');
   document.getElementById('modalContent').innerHTML = `
     <h2>${c.name}</h2>
     <div class="modal-glass"><span class="glass-icon">${glassIcon(c.glass)}</span><span class="modal-meta" style="margin:0;">${c.glass}${c.garnish && c.garnish !== 'None' ? ' · Garnish: ' + c.garnish : ''}</span></div>
     <p class="modal-meta">${c.isAI ? '<span class="ai-badge">✨ AI suggested</span> ' : ''}<span class="stamp ${statusMeta[ev.status].cls}">${statusMeta[ev.status].label}</span></p>
     <p class="modal-section-label">Ingredients</p>
     <ul class="modal-ing-list">
-      ${ev.haveList.map(i => `<li><span style="color:${i.have ? 'var(--cream)' : 'var(--danger)'}">${i.label}${i.have ? '' : ' (need to get)'}</span><span class="amt">${i.amount}</span></li>`).join('')}
+      ${ingRows}
     </ul>
     <p class="modal-section-label">Method</p>
     <ol class="modal-steps">
