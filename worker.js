@@ -30,7 +30,7 @@ export default {
     }
 
     if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+      return env.ASSETS.fetch(request);
     }
 
     if (!env.ANTHROPIC_API_KEY) {
