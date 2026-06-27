@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hardin Bar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #1a1512;
+    --bg-card: #241d18;
+    --bg-card-2: #2c231d;
+    --line: #3a2e26;
+    --cream: #ece4d8;
+    --muted: #9c8f80;
+    --amber: #c98a3c;
+    --amber-bright: #e3a456;
+    --herb: #8a9a5b;
+    --danger: #b5563f;
+    --shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 800px 500px at 10% -10%, rgba(201,138,60,0.10), transparent),
+      var(--bg);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  header{
+    padding:48px 24px 28px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-optical-sizing:auto;
+    font-size:clamp(2.2rem,6vw,3.2rem);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  header h1 .amp{ color:var(--amber); font-style:italic; }
+  header p{
+    color:var(--muted);
+    margin:10px 0 0;
+    font-size:0.95rem;
+    letter-spacing:0.02em;
+  }
+
+  nav{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin:28px auto 0;
+    max-width:480px;
+  }
+  nav button{
+    flex:1;
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:11px 16px;
+    border-radius:999px;
+    font-family:'Inter',sans-serif;
+    font-size:0.85rem;
+    font-weight:500;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  nav button.active{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#1a1512;
+  }
+  nav button:hover:not(.active){ border-color:var(--amber); color:var(--amber-bright); }
+
+  main{
+    max-width:900px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+  }
+  section{ display:none; }
+  section.active{ display:block; }
+
+  h2.section-title{
+    font-family:'Fraunces',serif;
+    font-size:1.5rem;
+    font-weight:500;
+    margin:0 0 4px;
+  }
+  p.section-sub{ color:var(--muted); font-size:0.88rem; margin:0 0 24px; }
+
+  /* --- My Bar tab --- */
+  .add-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+    position:relative;
+  }
+  .add-row input{
+    flex:1;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    color:var(--cream);
+    padding:13px 16px;
+    border-radius:10px;
+    font-size:0.95rem;
+    font-family:'Inter',sans-serif;
+  }
+  .add-row input:focus{ outline:none; border-color:var(--amber); }
+  .add-row button{
+    background:var(--amber);
+    border:none;
+    color:#1a1512;
+    padding:0 20px;
+    border-radius:10px;
+    font-weight:600;
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .add-row button:hover{ background:var(--amber-bright); }
+
+  .suggest{
+    position:absolute;
+    top:54px;
+    left:0;
+    right:74px;
+    background:var(--bg-card-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    max-height:260px;
+    overflow-y:auto;
+    z-index:10;
+    display:none;
+  }
+  .suggest.show{ display:block; }
+  .suggest div{
+    padding:10px 16px;
+    cursor:pointer;
+    font-size:0.88rem;
+    display:flex;
+    justify-content:space-between;
+  }
+  .suggest div:hover{ background:rgba(201,138,60,0.12); }
+  .suggest .cat{ color:var(--muted); font-size:0.78rem; }
+
+  .bar-groups{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    gap:14px;
+    align-items:start;
+  }
+  .bar-group{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 16px 14px;
+  }
+  .bar-group h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.7rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--amber-bright);
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .bar-group h3 .swatch{
+    width:9px; height:9px;
+    border-radius:50%;
+    flex:none;
+  }
+  .bar-group h3 .count{
+    color:var(--muted);
+    font-weight:400;
+    margin-left:auto;
+    letter-spacing:0;
+    text-transform:none;
+  }
+  .bottle-list{ display:flex; flex-direction:column; gap:6px; }
+  .bottle{
+    background:var(--bg-card-2);
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:0.84rem;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .bottle button{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:0.95rem;
+    line-height:1;
+    padding:0;
+    flex:none;
+  }
+  .bottle button:hover{ color:var(--danger); }
+
+  .pantry-box{
+    margin-top:32px;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px;
+  }
+  .pantry-box h3{
+    font-family:'Fraunces',serif;
+    font-size:1.05rem;
+    margin:0 0 4px;
+    font-weight:500;
+  }
+  .pantry-box p{ color:var(--muted); font-size:0.82rem; margin:0 0 16px; }
+  .pantry-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:8px;
+  }
+  .pantry-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.85rem;
+    cursor:pointer;
+    color:var(--cream);
+    padding:6px 8px;
+    border-radius:6px;
+  }
+  .pantry-item:hover{ background:rgba(255,255,255,0.03); }
+  .pantry-item input{ accent-color:var(--amber); width:15px; height:15px; }
+
+  /* --- Cocktails tab --- */
+  .filter-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .filter-row button{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:8px 15px;
+    border-radius:999px;
+    font-size:0.8rem;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .filter-row button.active{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600;}
+
+  .shop-list{
+    background:var(--bg-card);
+    border:1px dashed var(--amber);
+    border-radius:12px;
+    padding:16px 20px;
+    margin-bottom:26px;
+    font-size:0.86rem;
+  }
+  .shop-list strong{ color:var(--amber-bright); display:block; margin-bottom:6px; font-family:'Fraunces',serif; font-size:1rem;}
+  .shop-list span.tag{
+    display:inline-block;
+    background:var(--bg-card-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:3px 9px;
+    margin:3px 4px 0 0;
+    font-size:0.78rem;
+    color:var(--cream);
+  }
+
+  .cocktail-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:18px;
+  }
+  .ticket{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px 20px 18px;
+    position:relative;
+    box-shadow:var(--shadow);
+    background-image:
+      linear-gradient(var(--bg-card), var(--bg-card)),
+      repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px);
+  }
+  .ticket::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 12px);
+  }
+  .ticket-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:12px;
+  }
+  .ticket-head h3{
+    font-family:'Fraunces',serif;
+    font-size:1.2rem;
+    margin:0;
+    font-weight:600;
+  }
+  .stamp{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.65rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:4px 9px;
+    border-radius:4px;
+    border:1.5px solid currentColor;
+    transform:rotate(3deg);
+    white-space:nowrap;
+    font-weight:600;
+  }
+  .stamp.ready{ color:var(--herb); }
+  .stamp.almost{ color:var(--amber-bright); }
+  .stamp.missing{ color:var(--danger); }
+
+  .ing-list{ list-style:none; margin:0 0 12px; padding:0; }
+  .ing-list li{
+    font-size:0.85rem;
+    padding:4px 0;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    color:var(--muted);
+  }
+  .ing-list li.have{ color:var(--cream); }
+  .ing-list li .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--line);
+    flex:none;
+    margin-top:5px;
+  }
+  .ing-list li.have .dot{ background:var(--herb); }
+  .ing-list li.need .dot{ background:var(--danger); }
+
+  .ticket-foot{
+    border-top:1px solid var(--line);
+    padding-top:10px;
+    font-size:0.78rem;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .glass-icon{
+    flex:none;
+    font-size:1.3rem;
+    line-height:1;
+    filter:saturate(1.1);
+  }
+  .modal-glass{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:4px;
+  }
+  .modal-glass .glass-icon{ font-size:2rem; }
+
+  .ai-more-row{
+    text-align:center;
+    margin-top:28px;
+  }
+  .ai-btn{
+    background:linear-gradient(135deg, var(--amber), var(--amber-bright));
+    border:none;
+    color:#1a1512;
+    padding:12px 20px;
+    border-radius:10px;
+    font-weight:600;
+    font-size:0.88rem;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .ai-btn:hover{ filter:brightness(1.08); }
+  .ai-btn:disabled{ opacity:0.6; cursor:default; filter:none; }
+  .ai-status{
+    color:var(--muted);
+    font-size:0.8rem;
+    margin:0 0 20px;
+    text-align:center;
+  }
+  .ai-status.error{ color:var(--danger); }
+  .ai-badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.62rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--amber-bright);
+    border:1px solid var(--amber);
+    border-radius:4px;
+    padding:2px 6px;
+    margin-right:6px;
+    white-space:nowrap;
+  }
+
+  .empty-state{
+    text-align:center;
+    color:var(--muted);
+    padding:60px 20px;
+    font-size:0.9rem;
+  }
+
+  .ticket{ cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
+  .ticket:hover{ border-color:var(--amber); transform:translateY(-2px); }
+
+  /* --- Add pantry item --- */
+  .pantry-add{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .pantry-add input{
+    flex:1;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--cream);
+    padding:9px 12px;
+    border-radius:8px;
+    font-size:0.84rem;
+  }
+  .pantry-add input:focus{ outline:none; border-color:var(--amber); }
+  .pantry-add button{
+    background:none;
+    border:1px solid var(--amber);
+    color:var(--amber-bright);
+    padding:0 16px;
+    border-radius:8px;
+    font-size:0.82rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .pantry-add button:hover{ background:var(--amber); color:#1a1512; }
+
+  /* --- Recipe modal --- */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(10,8,6,0.72);
+    backdrop-filter:blur(3px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-card{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    max-width:460px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    padding:28px 28px 24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    position:relative;
+  }
+  .modal-close{
+    position:absolute;
+    top:18px; right:18px;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:1.3rem;
+    cursor:pointer;
+    line-height:1;
+  }
+  .modal-close:hover{ color:var(--amber-bright); }
+  .modal-card h2{
+    font-family:'Fraunces',serif;
+    font-size:1.6rem;
+    margin:0 4px 4px 0;
+    font-weight:600;
+  }
+  .modal-meta{
+    color:var(--muted);
+    font-size:0.82rem;
+    margin:0 0 20px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .modal-section-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.7rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--amber-bright);
+    margin:0 0 10px;
+  }
+  .modal-ing-list{ list-style:none; margin:0 0 24px; padding:0; }
+  .modal-ing-list li{
+    display:flex;
+    justify-content:space-between;
+    font-size:0.92rem;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .modal-ing-list li:last-child{ border-bottom:none; }
+  .modal-ing-list .amt{ color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:0.84rem; }
+  .modal-steps{ margin:0; padding:0; list-style:none; counter-reset:step; }
+  .modal-steps li{
+    counter-increment:step;
+    display:flex;
+    gap:14px;
+    margin-bottom:14px;
+    font-size:0.92rem;
+    line-height:1.5;
+  }
+  .modal-steps li::before{
+    content:counter(step);
+    flex:none;
+    width:24px; height:24px;
+    border-radius:50%;
+    border:1.5px solid var(--amber);
+    color:var(--amber-bright);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.78rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Hardin <span class="amp">Bar</span></h1>
+  <p>Inventory what you've got. Find out what you can pour.</p>
+</header>
+
+<nav>
+  <button class="active" data-tab="bar">My Bar</button>
+  <button data-tab="cocktails">Cocktails</button>
+</nav>
+
+<main>
+
+  <section id="bar" class="active">
+    <h2 class="section-title">Inventory</h2>
+    <p class="section-sub">Search a bottle to add it, or type your own and hit Add.</p>
+
+    <div class="add-row">
+      <input type="text" id="bottleInput" placeholder="Search a bottle… e.g. Hendrick's, Bourbon, Campari" autocomplete="off">
+      <button onclick="addCustomBottle()">Add</button>
+      <div class="suggest" id="suggestBox"></div>
+    </div>
+
+    <div class="bar-groups" id="barGroups"></div>
+
+    <div class="pantry-box">
+      <h3>Pantry staples</h3>
+      <p>Cheap stuff you grab on the way home — check off what's already in your kitchen.</p>
+      <div class="pantry-grid" id="pantryGrid"></div>
+      <div class="pantry-add">
+        <input type="text" id="pantryInput" placeholder="Add your own pantry item… e.g. Pineapple juice" autocomplete="off">
+        <button onclick="addPantryItem()">Add</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="cocktails">
+    <h2 class="section-title">What can I make?</h2>
+    <p class="section-sub">Matched against your bar and pantry, live.</p>
+
+    <p id="aiStatus" class="ai-status"></p>
+
+    <div class="filter-row" id="filterRow"></div>
+    <div id="shopListBox"></div>
+    <div class="cocktail-grid" id="cocktailGrid"></div>
+
+    <div class="ai-more-row">
+      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(10)" style="display:none;">✨ Fetch more cocktails</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG — fill this in before deploying ================= */
+
+// Deploy worker.js (included alongside this file) to Cloudflare Workers,
+// then paste its URL here. The worker holds your Anthropic API key server-side
+// so it's never exposed in this client-side file.
+const AI_WORKER_URL = "https://YOUR-WORKER-SUBDOMAIN.workers.dev";
+
+/* ============================================================================ */
+
+/* ---------------- DATA ---------------- */
+
+const LIQUOR_DB = [
+  {name:"Maker's Mark", category:"Bourbon"},
+  {name:"Buffalo Trace", category:"Bourbon"},
+  {name:"Bulleit Rye", category:"Rye Whiskey"},
+  {name:"Johnnie Walker Black", category:"Scotch"},
+  {name:"Jameson", category:"Irish Whiskey"},
+  {name:"Tanqueray", category:"Gin"},
+  {name:"Hendrick's", category:"Gin"},
+  {name:"Bacardi Superior", category:"White Rum"},
+  {name:"Gosling's Black Seal", category:"Dark Rum"},
+  {name:"Captain Morgan", category:"Spiced Rum"},
+  {name:"Patrón Silver", category:"Tequila"},
+  {name:"Espolòn Reposado", category:"Tequila"},
+  {name:"Del Maguey Vida", category:"Mezcal"},
+  {name:"Tito's", category:"Vodka"},
+  {name:"Grey Goose", category:"Vodka"},
+  {name:"Hennessy VS", category:"Cognac"},
+  {name:"Cointreau", category:"Triple Sec"},
+  {name:"Campari", category:"Campari"},
+  {name:"Aperol", category:"Aperol"},
+  {name:"Dolin Rouge", category:"Sweet Vermouth"},
+  {name:"Dolin Dry", category:"Dry Vermouth"},
+  {name:"Disaronno", category:"Amaretto"},
+  {name:"Green Chartreuse", category:"Green Chartreuse"},
+  {name:"Kahlúa", category:"Coffee Liqueur"},
+  {name:"Luxardo Maraschino", category:"Maraschino Liqueur"},
+  {name:"St-Germain", category:"Elderflower Liqueur"},
+
+  /* --- Erik & Megan's actual bar (from photos) --- */
+  {name:"Paranubes Rum", category:"Aguardiente de Caña"},
+  {name:"Ancho Reyes Verde", category:"Chile Poblano Liqueur"},
+  {name:"Tajantl Mezcal Artesanal", category:"Mezcal"},
+  {name:"St. Elizabeth Allspice Dram", category:"Allspice Dram"},
+  {name:"Del Maguey Chichicapa", category:"Mezcal"},
+  {name:"Amaro Averna", category:"Amaro"},
+  {name:"Jefferson Amaro Importante", category:"Amaro"},
+  {name:"Stranahan's Sherry Cask", category:"American Single Malt Whiskey"},
+  {name:"Askur Yggdrasil Gin", category:"Gin"},
+  {name:"Cimarron Blanco Tequila", category:"Tequila"},
+  {name:"Ketel One", category:"Vodka"},
+  {name:"Jameson 12 Year (Megan & Erik)", category:"Irish Whiskey"},
+  {name:"Smith & Cross", category:"Dark Rum"},
+  {name:"Italicus", category:"Bergamot Liqueur"},
+  {name:"Maraska Maraschino", category:"Maraschino Liqueur"},
+  {name:"Pimm's No.1", category:"Pimm's"},
+  {name:"Laird's Applejack", category:"Applejack"},
+  {name:"Frangelico", category:"Hazelnut Liqueur"},
+  {name:"Barsol Pisco Quebranta", category:"Pisco"},
+  {name:"Pierre Ferrand 1840", category:"Cognac"},
+  {name:"Flor de Caña Extra Seco", category:"White Rum"},
+  {name:"Rothman & Winter Crème de Violette", category:"Crème de Violette"},
+  {name:"Pernod Absinthe Supérieure", category:"Absinthe"},
+
+  /* --- Second shelf (more from Erik & Megan's bar) --- */
+  {name:"Margerum Amaro", category:"Amaro"},
+  {name:"Amaro Nonino Quintessentia", category:"Amaro"},
+  {name:"B&B Bénédictine", category:"B&B Liqueur"},
+  {name:"Faccia Brutto Centerbe", category:"Centerbe"},
+  {name:"Elijah Craig Single Barrel 18 Year", category:"Bourbon"},
+  {name:"Breckenridge Gin", category:"Gin"},
+  {name:"Sir Cooper's Southern Gin", category:"Gin"},
+  {name:"Mythology Single Barrel Rye Whiskey", category:"Rye Whiskey"},
+  {name:"El Dorado 15 Year Demerara Rum", category:"Dark Rum"},
+  {name:"The Kraken Black Spiced Rum", category:"Spiced Rum"},
+  {name:"Sledge Texas Pear Liqueur", category:"Pear Liqueur"},
+  {name:"Sledge Big Dad's Butter Pecan Specialty Spirit", category:"Butter Pecan Specialty Spirit"},
+  {name:"E&J VS Brandy", category:"Brandy"},
+  {name:"Koloa Kaua'i White Hawaiian Rum", category:"White Rum"},
+  {name:"Koloa Kaua'i Gold Hawaiian Rum", category:"Gold Rum"},
+  {name:"Koloa Kaua'i Dark Hawaiian Rum", category:"Dark Rum"},
+  {name:"Koloa Kaua'i Spice Hawaiian Rum", category:"Spiced Rum"},
+  {name:"Koloa Kaua'i Coconut Hawaiian Rum", category:"Coconut Rum"},
+  {name:"Koloa Hawaiian Kaua'i Coffee Rum", category:"Coffee Rum"},
+];
+
+const PANTRY_ITEMS = [
+  "Lime juice","Lemon juice","Simple syrup","Mint","Soda water",
+  "Ginger beer","Angostura bitters","Orange bitters","Cranberry juice",
+  "Grapefruit soda","Prosecco","Honey syrup","Egg white","Espresso",
+  "Orange peel","Olive"
+];
+const PANTRY_DEFAULT_CHECKED = ["Simple syrup","Angostura bitters"];
+
+// ingredient.type: 'bar' (must be owned bottle by category) or 'fresh' (pantry item)
+// ingredient.alt: array of categories, any one satisfies it
+const COCKTAILS = [
+  {name:"Old Fashioned", glass:"Rocks", garnish:"Orange peel",
+   ingredients:[
+    {label:"Bourbon or Rye", amount:"2 oz", type:"bar", alt:["Bourbon","Rye Whiskey"]},
+    {label:"Simple syrup", amount:"1/4 oz", type:"fresh", pantry:"Simple syrup"},
+    {label:"Angostura bitters", amount:"2 dashes", type:"fresh", pantry:"Angostura bitters"},
+    {label:"Orange peel", amount:"1 strip", type:"fresh", pantry:"Orange peel"},
+   ],
+   instructions:[
+    "Add the bourbon, simple syrup, and bitters to a rocks glass with one large ice cube.",
+    "Stir for about 20 seconds until well chilled.",
+    "Express the orange peel over the glass and drop it in."
+   ]},
+  {name:"Manhattan", glass:"Coupe", garnish:"Cherry or orange twist",
+   ingredients:[
+    {label:"Rye or Bourbon", amount:"2 oz", type:"bar", alt:["Rye Whiskey","Bourbon"]},
+    {label:"Sweet Vermouth", amount:"1 oz", type:"bar", alt:["Sweet Vermouth"]},
+    {label:"Angostura bitters", amount:"2 dashes", type:"fresh", pantry:"Angostura bitters"},
+   ],
+   instructions:[
+    "Stir whiskey, sweet vermouth, and bitters with ice in a mixing glass for 20–30 seconds.",
+    "Strain into a chilled coupe.",
+    "Garnish with a cherry or orange twist."
+   ]},
+  {name:"Whiskey Sour", glass:"Rocks", garnish:"Lemon wheel",
+   ingredients:[
+    {label:"Bourbon", amount:"2 oz", type:"bar", alt:["Bourbon"]},
+    {label:"Lemon juice", amount:"3/4 oz", type:"fresh", pantry:"Lemon juice"},
+    {label:"Simple syrup", amount:"3/4 oz", type:"fresh", pantry:"Simple syrup"},
+    {label:"Egg white (optional)", amount:"1/2 oz", type:"fresh", pantry:"Egg white"},
+   ],
+   instructions:[
+    "If using egg white, dry-shake everything (no ice) for 15 seconds to build foam.",
+    "Add ice and shake hard for another 15 seconds.",
+    "Strain into a rocks glass over fresh ice and garnish with a lemon wheel."
+   ]},
+  {name:"Negroni", glass:"Rocks", garnish:"Orange peel",
+   ingredients:[
+    {label:"Gin", amount:"1 oz", type:"bar", alt:["Gin"]},
+    {label:"Campari", amount:"1 oz", type:"bar", alt:["Campari"]},
+    {label:"Sweet Vermouth", amount:"1 oz", type:"bar", alt:["Sweet Vermouth"]},
+   ],
+   instructions:[
+    "Combine gin, Campari, and sweet vermouth in a mixing glass with ice.",
+    "Stir for 20–30 seconds.",
+    "Strain into a rocks glass over fresh ice and garnish with an orange peel."
+   ]},
+  {name:"Boulevardier", glass:"Rocks", garnish:"Orange peel",
+   ingredients:[
+    {label:"Bourbon or Rye", amount:"1.5 oz", type:"bar", alt:["Bourbon","Rye Whiskey"]},
+    {label:"Campari", amount:"1 oz", type:"bar", alt:["Campari"]},
+    {label:"Sweet Vermouth", amount:"1 oz", type:"bar", alt:["Sweet Vermouth"]},
+   ],
+   instructions:[
+    "Stir bourbon, Campari, and sweet vermouth with ice for 20–30 seconds.",
+    "Strain into a rocks glass over fresh ice.",
+    "Garnish with an orange peel."
+   ]},
+  {name:"Martini", glass:"Coupe", garnish:"Olive or lemon twist",
+   ingredients:[
+    {label:"Gin or Vodka", amount:"2.5 oz", type:"bar", alt:["Gin","Vodka"]},
+    {label:"Dry Vermouth", amount:"0.5 oz", type:"bar", alt:["Dry Vermouth"]},
+    {label:"Olive or lemon twist", amount:"1", type:"fresh", pantry:"Olive"},
+   ],
+   instructions:[
+    "Stir gin (or vodka) and dry vermouth with plenty of ice for 30 seconds — don't shake.",
+    "Strain into a chilled coupe or martini glass.",
+    "Garnish with an olive or a twist of lemon peel."
+   ]},
+  {name:"Tom Collins", glass:"Highball", garnish:"Lemon wheel",
+   ingredients:[
+    {label:"Gin", amount:"2 oz", type:"bar", alt:["Gin"]},
+    {label:"Lemon juice", amount:"1 oz", type:"fresh", pantry:"Lemon juice"},
+    {label:"Simple syrup", amount:"1/2 oz", type:"fresh", pantry:"Simple syrup"},
+    {label:"Soda water", amount:"top off", type:"fresh", pantry:"Soda water"},
+   ],
+   instructions:[
+    "Shake gin, lemon juice, and simple syrup with ice for 10–15 seconds.",
+    "Strain into a highball glass filled with fresh ice.",
+    "Top with soda water and garnish with a lemon wheel."
+   ]},
+  {name:"Daiquiri", glass:"Coupe", garnish:"Lime wheel",
+   ingredients:[
+    {label:"White Rum", amount:"2 oz", type:"bar", alt:["White Rum"]},
+    {label:"Lime juice", amount:"1 oz", type:"fresh", pantry:"Lime juice"},
+    {label:"Simple syrup", amount:"3/4 oz", type:"fresh", pantry:"Simple syrup"},
+   ],
+   instructions:[
+    "Shake rum, lime juice, and simple syrup hard with ice for 15 seconds.",
+    "Strain into a chilled coupe.",
+    "Garnish with a lime wheel."
+   ]},
+  {name:"Mojito", glass:"Highball", garnish:"Mint sprig",
+   ingredients:[
+    {label:"White Rum", amount:"2 oz", type:"bar", alt:["White Rum"]},
+    {label:"Lime juice", amount:"1 oz", type:"fresh", pantry:"Lime juice"},
+    {label:"Mint", amount:"8–10 leaves", type:"fresh", pantry:"Mint"},
+    {label:"Simple syrup", amount:"3/4 oz", type:"fresh", pantry:"Simple syrup"},
+    {label:"Soda water", amount:"top off", type:"fresh", pantry:"Soda water"},
+   ],
+   instructions:[
+    "Gently muddle mint leaves with simple syrup in the bottom of a glass.",
+    "Add rum, lime juice, and ice, then stir well.",
+    "Top with soda water and garnish with a mint sprig."
+   ]},
+  {name:"Dark 'n' Stormy", glass:"Highball", garnish:"Lime wedge",
+   ingredients:[
+    {label:"Dark Rum", amount:"2 oz", type:"bar", alt:["Dark Rum"]},
+    {label:"Ginger beer", amount:"top off", type:"fresh", pantry:"Ginger beer"},
+    {label:"Lime juice", amount:"1/4 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Fill a highball glass with ice and add lime juice.",
+    "Top with ginger beer.",
+    "Float the dark rum on top and garnish with a lime wedge."
+   ]},
+  {name:"Margarita", glass:"Rocks", garnish:"Lime wheel, salt rim optional",
+   ingredients:[
+    {label:"Tequila", amount:"2 oz", type:"bar", alt:["Tequila"]},
+    {label:"Triple Sec", amount:"1 oz", type:"bar", alt:["Triple Sec"]},
+    {label:"Lime juice", amount:"1 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Salt the rim of a rocks glass if you'd like, then fill with ice.",
+    "Shake tequila, triple sec, and lime juice hard with ice for 15 seconds.",
+    "Strain into the glass and garnish with a lime wheel."
+   ]},
+  {name:"Paloma", glass:"Highball", garnish:"Grapefruit wedge",
+   ingredients:[
+    {label:"Tequila", amount:"2 oz", type:"bar", alt:["Tequila"]},
+    {label:"Grapefruit soda", amount:"top off", type:"fresh", pantry:"Grapefruit soda"},
+    {label:"Lime juice", amount:"1/2 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Fill a highball glass with ice.",
+    "Add tequila and lime juice, then top with grapefruit soda.",
+    "Stir gently and garnish with a grapefruit wedge."
+   ]},
+  {name:"Mezcal Margarita", glass:"Rocks", garnish:"Lime wheel",
+   ingredients:[
+    {label:"Mezcal", amount:"2 oz", type:"bar", alt:["Mezcal"]},
+    {label:"Triple Sec", amount:"1 oz", type:"bar", alt:["Triple Sec"]},
+    {label:"Lime juice", amount:"1 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Fill a rocks glass with ice.",
+    "Shake mezcal, triple sec, and lime juice hard with ice for 15 seconds.",
+    "Strain into the glass and garnish with a lime wheel."
+   ]},
+  {name:"Cosmopolitan", glass:"Coupe", garnish:"Lime wheel",
+   ingredients:[
+    {label:"Vodka", amount:"1.5 oz", type:"bar", alt:["Vodka"]},
+    {label:"Triple Sec", amount:"0.5 oz", type:"bar", alt:["Triple Sec"]},
+    {label:"Cranberry juice", amount:"1/2 oz", type:"fresh", pantry:"Cranberry juice"},
+    {label:"Lime juice", amount:"1/4 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Shake all ingredients hard with ice for 15 seconds.",
+    "Strain into a chilled coupe.",
+    "Garnish with a lime wheel."
+   ]},
+  {name:"Moscow Mule", glass:"Copper mug", garnish:"Lime wedge",
+   ingredients:[
+    {label:"Vodka", amount:"2 oz", type:"bar", alt:["Vodka"]},
+    {label:"Ginger beer", amount:"top off", type:"fresh", pantry:"Ginger beer"},
+    {label:"Lime juice", amount:"1/2 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Fill a copper mug (or any glass) with ice.",
+    "Add vodka and lime juice, then top with ginger beer.",
+    "Stir gently and garnish with a lime wedge."
+   ]},
+  {name:"Sidecar", glass:"Coupe", garnish:"Sugar rim optional",
+   ingredients:[
+    {label:"Cognac", amount:"2 oz", type:"bar", alt:["Cognac"]},
+    {label:"Triple Sec", amount:"3/4 oz", type:"bar", alt:["Triple Sec"]},
+    {label:"Lemon juice", amount:"3/4 oz", type:"fresh", pantry:"Lemon juice"},
+   ],
+   instructions:[
+    "Sugar the rim of a coupe if you'd like.",
+    "Shake cognac, triple sec, and lemon juice hard with ice for 15 seconds.",
+    "Strain into the glass."
+   ]},
+  {name:"Amaretto Sour", glass:"Rocks", garnish:"Cherry",
+   ingredients:[
+    {label:"Amaretto", amount:"2 oz", type:"bar", alt:["Amaretto"]},
+    {label:"Lemon juice", amount:"3/4 oz", type:"fresh", pantry:"Lemon juice"},
+    {label:"Simple syrup", amount:"1/4 oz", type:"fresh", pantry:"Simple syrup"},
+   ],
+   instructions:[
+    "Shake amaretto, lemon juice, and simple syrup hard with ice for 15 seconds.",
+    "Strain into a rocks glass over fresh ice.",
+    "Garnish with a cherry."
+   ]},
+  {name:"Espresso Martini", glass:"Coupe", garnish:"Coffee beans",
+   ingredients:[
+    {label:"Vodka", amount:"1.5 oz", type:"bar", alt:["Vodka"]},
+    {label:"Coffee Liqueur", amount:"1 oz", type:"bar", alt:["Coffee Liqueur"]},
+    {label:"Espresso", amount:"1 oz, cooled", type:"fresh", pantry:"Espresso"},
+   ],
+   instructions:[
+    "Combine vodka, coffee liqueur, and cooled espresso in a shaker with ice.",
+    "Shake hard for 15 seconds to build a foamy head.",
+    "Strain into a chilled coupe and garnish with a few coffee beans."
+   ]},
+  {name:"Last Word", glass:"Coupe", garnish:"None",
+   ingredients:[
+    {label:"Gin", amount:"3/4 oz", type:"bar", alt:["Gin"]},
+    {label:"Green Chartreuse", amount:"3/4 oz", type:"bar", alt:["Green Chartreuse"]},
+    {label:"Maraschino Liqueur", amount:"3/4 oz", type:"bar", alt:["Maraschino Liqueur"]},
+    {label:"Lime juice", amount:"3/4 oz", type:"fresh", pantry:"Lime juice"},
+   ],
+   instructions:[
+    "Combine all four ingredients in a shaker with ice (equal parts makes this easy to remember).",
+    "Shake hard for 15 seconds.",
+    "Strain into a chilled coupe."
+   ]},
+  {name:"Aperol Spritz", glass:"Wine glass", garnish:"Orange slice",
+   ingredients:[
+    {label:"Aperol", amount:"3 oz", type:"bar", alt:["Aperol"]},
+    {label:"Prosecco", amount:"3 oz", type:"fresh", pantry:"Prosecco"},
+    {label:"Soda water", amount:"splash", type:"fresh", pantry:"Soda water"},
+   ],
+   instructions:[
+    "Fill a wine glass with ice.",
+    "Add Aperol, then prosecco, then a splash of soda water.",
+    "Stir gently and garnish with an orange slice."
+   ]},
+  {name:"Bee's Knees", glass:"Coupe", garnish:"Lemon twist",
+   ingredients:[
+    {label:"Gin", amount:"2 oz", type:"bar", alt:["Gin"]},
+    {label:"Lemon juice", amount:"3/4 oz", type:"fresh", pantry:"Lemon juice"},
+    {label:"Honey syrup", amount:"3/4 oz", type:"fresh", pantry:"Honey syrup"},
+   ],
+   instructions:[
+    "Shake gin, lemon juice, and honey syrup hard with ice for 15 seconds.",
+    "Strain into a chilled coupe.",
+    "Garnish with a lemon twist."
+   ]},
+  {name:"Elderflower Gin Fizz", glass:"Highball", garnish:"Lemon wheel",
+   ingredients:[
+    {label:"Gin", amount:"1.5 oz", type:"bar", alt:["Gin"]},
+    {label:"St-Germain", amount:"1/2 oz", type:"bar", alt:["Elderflower Liqueur"]},
+    {label:"Lemon juice", amount:"3/4 oz", type:"fresh", pantry:"Lemon juice"},
+    {label:"Soda water", amount:"top off", type:"fresh", pantry:"Soda water"},
+   ],
+   instructions:[
+    "Shake gin, St-Germain, and lemon juice with ice for 10–15 seconds.",
+    "Strain into a highball glass over fresh ice.",
+    "Top with soda water and garnish with a lemon wheel."
+   ]},
+];
+
+const DEFAULT_BAR = [
+  "Paranubes Rum","Ancho Reyes Verde","Tito's","Tajantl Mezcal Artesanal",
+  "St. Elizabeth Allspice Dram","Del Maguey Chichicapa","Campari",
+  "Amaro Averna","Jefferson Amaro Importante","Stranahan's Sherry Cask",
+  "Askur Yggdrasil Gin","Cimarron Blanco Tequila","Ketel One",
+  "Jameson 12 Year (Megan & Erik)","Smith & Cross","Aperol","Italicus",
+  "Maraska Maraschino","Pimm's No.1","Laird's Applejack","Frangelico",
+  "Barsol Pisco Quebranta","Pierre Ferrand 1840","Flor de Caña Extra Seco",
+  "Rothman & Winter Crème de Violette","Pernod Absinthe Supérieure",
+  "St-Germain","Cointreau","Margerum Amaro","B&B Bénédictine",
+  "Faccia Brutto Centerbe","Disaronno","Elijah Craig Single Barrel 18 Year",
+  "Breckenridge Gin","Sir Cooper's Southern Gin","Mythology Single Barrel Rye Whiskey",
+  "El Dorado 15 Year Demerara Rum","The Kraken Black Spiced Rum","Kahlúa",
+  "Amaro Nonino Quintessentia","Sledge Texas Pear Liqueur",
+  "Sledge Big Dad's Butter Pecan Specialty Spirit","E&J VS Brandy",
+  "Koloa Kaua'i White Hawaiian Rum","Koloa Kaua'i Gold Hawaiian Rum",
+  "Koloa Kaua'i Dark Hawaiian Rum","Koloa Kaua'i Spice Hawaiian Rum",
+  "Koloa Kaua'i Coconut Hawaiian Rum","Koloa Hawaiian Kaua'i Coffee Rum"
+];
+
+/* ---------------- STATE ---------------- */
+let bar = [...DEFAULT_BAR]; // array of bottle names (must exist in LIQUOR_DB or be custom) — overwritten once Firebase loads
+let pantry = {};
+PANTRY_ITEMS.forEach(p => pantry[p] = PANTRY_DEFAULT_CHECKED.includes(p));
+let currentFilter = "all";
+let AI_COCKTAILS = []; // cocktails suggested live by Claude based on current bar + pantry
+let aiFetchedOnce = false; // tracks whether we've auto-fetched suggestions for this page load
+
+// Hooks the Firebase module script (bottom of page) calls into.
+window.getDefaultBar = function(){ return DEFAULT_BAR; };
+window.applyBarUpdate = function(newBar){
+  bar = newBar;
+  renderBar();
+  renderCocktails();
+};
+
+function categoryOf(bottleName){
+  const hit = LIQUOR_DB.find(l => l.name.toLowerCase() === bottleName.toLowerCase());
+  return hit ? hit.category : bottleName; // custom entries: treat name as its own category
+}
+function barCategories(){
+  return new Set(bar.map(categoryOf));
+}
+
+/* ---------------- TABS ---------------- */
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'cocktails' && !aiFetchedOnce){
+      aiFetchedOnce = true;
+      fetchAICocktails(25, true);
+    }
+  });
+});
+
+/* ---------------- BAR TAB ---------------- */
+const bottleInput = document.getElementById('bottleInput');
+const suggestBox = document.getElementById('suggestBox');
+
+bottleInput.addEventListener('input', ()=>{
+  const q = bottleInput.value.trim().toLowerCase();
+  if(!q){ suggestBox.classList.remove('show'); return; }
+  const matches = LIQUOR_DB.filter(l =>
+    l.name.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)
+  ).slice(0,8);
+  if(matches.length===0){ suggestBox.classList.remove('show'); return; }
+  suggestBox.innerHTML = matches.map(m =>
+    `<div onclick="selectSuggestion('${m.name.replace(/'/g,"\\'")}')">${m.name} <span class="cat">${m.category}</span></div>`
+  ).join('');
+  suggestBox.classList.add('show');
+});
+bottleInput.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ addCustomBottle(); }
+});
+document.addEventListener('click', e=>{
+  if(!suggestBox.contains(e.target) && e.target !== bottleInput){ suggestBox.classList.remove('show'); }
+});
+
+function selectSuggestion(name){
+  bottleInput.value = name;
+  suggestBox.classList.remove('show');
+  addCustomBottle();
+}
+function addCustomBottle(){
+  const val = bottleInput.value.trim();
+  if(!val) return;
+  bar.push(val);
+  bottleInput.value = '';
+  suggestBox.classList.remove('show');
+  renderBar();
+  renderCocktails();
+  if(window.saveBarToFirebase) window.saveBarToFirebase(bar);
+}
+function removeBottle(idx){
+  bar.splice(idx,1);
+  renderBar();
+  renderCocktails();
+  if(window.saveBarToFirebase) window.saveBarToFirebase(bar);
+}
+
+/* ---------------- VISUAL HELPERS ---------------- */
+// Map each liquor category to a spirit "family" color, for quick visual scanning of the shelf.
+const FAMILY_COLOR = {
+  // whiskey family
+  "Bourbon":"#c98a3c","Rye Whiskey":"#c98a3c","Scotch":"#c98a3c","Irish Whiskey":"#c98a3c","American Single Malt Whiskey":"#c98a3c",
+  // clear spirits
+  "Gin":"#8a9a5b","Vodka":"#9c8f80",
+  // agave
+  "Tequila":"#5fa3a3","Mezcal":"#5fa3a3",
+  // rum / cane
+  "White Rum":"#b07a4e","Dark Rum":"#7a4a2b","Spiced Rum":"#946a3f","Aguardiente de Caña":"#b07a4e",
+  // brandy
+  "Cognac":"#9c5a3c","Pisco":"#9c5a3c","Applejack":"#9c5a3c",
+  // bitter / aperitivo
+  "Campari":"#b5563f","Aperol":"#e3a456","Amaro":"#a8623f",
+  // vermouth
+  "Sweet Vermouth":"#8c5a4a","Dry Vermouth":"#a9a98a",
+  // liqueurs
+  "Triple Sec":"#d8c27a","Amaretto":"#c2914a","Green Chartreuse":"#7a9a4a","Coffee Liqueur":"#5a4233",
+  "Maraschino Liqueur":"#c75c6b","Elderflower Liqueur":"#cdbf8a","Bergamot Liqueur":"#7ea88a",
+  "Chile Poblano Liqueur":"#6f8f4a","Allspice Dram":"#8a5a3a","Hazelnut Liqueur":"#a87a3f",
+  "Pimm's":"#a8473f","Crème de Violette":"#7a6aa8","Absinthe":"#8aa86a",
+  // second shelf
+  "Brandy":"#9c5a3c","B&B Liqueur":"#8a6a4a","Centerbe":"#7a9a4a","Pear Liqueur":"#a8a85a",
+  "Butter Pecan Specialty Spirit":"#9c7a4a","Gold Rum":"#c2954a","Coconut Rum":"#d8cba0","Coffee Rum":"#5a4233",
+};
+function familyColor(cat){ return FAMILY_COLOR[cat] || 'var(--muted)'; }
+
+// Glassware shown as real emoji rather than drawn icons.
+// Unicode doesn't have a dedicated highball/copper-mug glyph, so those map to the closest visual match.
+const GLASS_ICONS = {
+  "Rocks": "🥃",
+  "Coupe": "🍸",
+  "Martini": "🍸",
+  "Highball": "🍹",
+  "Copper mug": "🍺",
+  "Wine glass": "🍷",
+  "Champagne flute": "🥂",
+  "Shot": "🥃",
+  "Tiki": "🍹",
+};
+function glassIcon(glassName){
+  return GLASS_ICONS[glassName] || "🍸";
+}
+
+
+function renderBar(){
+  const groups = {};
+  bar.forEach((name, idx) => {
+    const cat = categoryOf(name);
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push({name, idx});
+  });
+  const sortedCats = Object.keys(groups).sort();
+  const html = sortedCats.map(cat => `
+    <div class="bar-group">
+      <h3><span class="swatch" style="background:${familyColor(cat)}"></span>${cat}<span class="count">${groups[cat].length}</span></h3>
+      <div class="bottle-list">
+        ${groups[cat].map(b => `
+          <div class="bottle">${b.name} <button onclick="removeBottle(${b.idx})">×</button></div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('barGroups').innerHTML = html || `<div class="empty-state">No bottles yet — search above to add your first one.</div>`;
+}
+
+function renderPantry(){
+  document.getElementById('pantryGrid').innerHTML = PANTRY_ITEMS.map(item => `
+    <label class="pantry-item">
+      <input type="checkbox" ${pantry[item] ? 'checked':''} onchange="togglePantry('${item}')">
+      ${item}
+    </label>
+  `).join('');
+}
+function togglePantry(item){
+  pantry[item] = !pantry[item];
+  renderCocktails();
+}
+function addPantryItem(){
+  const input = document.getElementById('pantryInput');
+  const val = input.value.trim();
+  if(!val) return;
+  const exists = PANTRY_ITEMS.some(p => p.toLowerCase() === val.toLowerCase());
+  if(!exists){
+    PANTRY_ITEMS.push(val);
+  }
+  pantry[val] = true; // assume if you're adding it, you have it
+  input.value = '';
+  renderPantry();
+  renderCocktails();
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const pi = document.getElementById('pantryInput');
+  if(pi) pi.addEventListener('keydown', e=>{ if(e.key==='Enter') addPantryItem(); });
+});
+
+/* ---------------- COCKTAILS TAB ---------------- */
+const FILTERS = [
+  {key:"all", label:"All"},
+  {key:"ready", label:"Ready now"},
+  {key:"almost", label:"Just need pantry items"},
+  {key:"missing", label:"Need a bottle"},
+];
+document.getElementById('filterRow').innerHTML = FILTERS.map(f =>
+  `<button data-key="${f.key}" class="${f.key==='all'?'active':''}">${f.label}</button>`
+).join('');
+document.querySelectorAll('#filterRow button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#filterRow button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.key;
+    renderCocktails();
+  });
+});
+
+function evaluateCocktail(c){
+  const cats = barCategories();
+  const missingBar = [];
+  const missingFresh = [];
+  const haveList = [];
+  c.ingredients.forEach(ing => {
+    if(ing.type === 'bar'){
+      const has = ing.alt.some(a => cats.has(a));
+      if(has) haveList.push({label:ing.label, amount:ing.amount, have:true});
+      else { haveList.push({label:ing.label, amount:ing.amount, have:false}); missingBar.push(ing.label); }
+    } else {
+      const has = pantry[ing.pantry];
+      if(has) haveList.push({label:ing.label, amount:ing.amount, have:true});
+      else { haveList.push({label:ing.label, amount:ing.amount, have:false}); missingFresh.push(ing.label); }
+    }
+  });
+  let status;
+  if(missingBar.length===0 && missingFresh.length===0) status = 'ready';
+  else if(missingBar.length===0) status = 'almost';
+  else status = 'missing';
+  return {status, missingBar, missingFresh, haveList};
+}
+
+function renderCocktails(){
+  const evaluated = [...COCKTAILS, ...AI_COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
+
+  // shopping list aggregate (fresh items missing across cocktails that are otherwise ready/almost)
+  const shopSet = new Set();
+  evaluated.forEach(({ev}) => { if(ev.status !== 'missing') ev.missingFresh.forEach(f => shopSet.add(f)); });
+  const shopBox = document.getElementById('shopListBox');
+  if(shopSet.size > 0){
+    shopBox.innerHTML = `
+      <div class="shop-list">
+        <strong>Grab these and unlock more cocktails</strong>
+        ${[...shopSet].map(i => `<span class="tag">${i}</span>`).join('')}
+      </div>`;
+  } else {
+    shopBox.innerHTML = '';
+  }
+
+  const filtered = evaluated.filter(({ev}) => currentFilter==='all' || ev.status===currentFilter);
+
+  if(filtered.length===0){
+    document.getElementById('cocktailGrid').innerHTML = `<div class="empty-state">Nothing matches this filter yet. Add a bottle or check off a pantry item.</div>`;
+    return;
+  }
+
+  const statusMeta = {
+    ready:{label:"Ready", cls:"ready"},
+    almost:{label:"Grab pantry items", cls:"almost"},
+    missing:{label:"Need a bottle", cls:"missing"},
+  };
+
+  document.getElementById('cocktailGrid').innerHTML = filtered.map(({c, ev}) => `
+    <div class="ticket" onclick="openCocktailModal('${c.name.replace(/'/g,"\\'")}')">
+      <div class="ticket-head">
+        <h3>${c.name}</h3>
+        <span style="display:flex; align-items:center; gap:6px; flex:none;">
+          ${c.isAI ? '<span class="ai-badge">✨ AI</span>' : ''}
+          <span class="stamp ${statusMeta[ev.status].cls}">${statusMeta[ev.status].label}</span>
+        </span>
+      </div>
+      <ul class="ing-list">
+        ${ev.haveList.map(i => `<li class="${i.have?'have':'need'}"><span class="dot"></span>${i.label}</li>`).join('')}
+      </ul>
+      <div class="ticket-foot"><span class="glass-icon">${glassIcon(c.glass)}</span>${c.glass}</div>
+    </div>
+  `).join('');
+}
+
+function openCocktailModal(name){
+  const c = [...COCKTAILS, ...AI_COCKTAILS].find(c => c.name === name);
+  if(!c) return;
+  const ev = evaluateCocktail(c);
+  const statusMeta = {
+    ready:{label:"Ready to make", cls:"ready"},
+    almost:{label:"Grab pantry items first", cls:"almost"},
+    missing:{label:"Need a bottle first", cls:"missing"},
+  };
+  document.getElementById('modalContent').innerHTML = `
+    <h2>${c.name}</h2>
+    <div class="modal-glass"><span class="glass-icon">${glassIcon(c.glass)}</span><span class="modal-meta" style="margin:0;">${c.glass}${c.garnish && c.garnish !== 'None' ? ' · Garnish: ' + c.garnish : ''}</span></div>
+    <p class="modal-meta">${c.isAI ? '<span class="ai-badge">✨ AI suggested</span> ' : ''}<span class="stamp ${statusMeta[ev.status].cls}">${statusMeta[ev.status].label}</span></p>
+    <p class="modal-section-label">Ingredients</p>
+    <ul class="modal-ing-list">
+      ${ev.haveList.map(i => `<li><span style="color:${i.have ? 'var(--cream)' : 'var(--danger)'}">${i.label}${i.have ? '' : ' (need to get)'}</span><span class="amt">${i.amount}</span></li>`).join('')}
+    </ul>
+    <p class="modal-section-label">Method</p>
+    <ol class="modal-steps">
+      ${c.instructions.map(step => `<li>${step}</li>`).join('')}
+    </ol>
+  `;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeModal(); });
+
+/* ---------------- AI COCKTAIL SUGGESTIONS ---------------- */
+async function fetchAICocktails(count = 10, isInitial = false){
+  const moreBtn = document.getElementById('aiMoreBtn');
+  const status = document.getElementById('aiStatus');
+
+  status.classList.remove('error');
+  if(isInitial){
+    status.textContent = `✨ Asking Claude for ${count} cocktail ideas based on your bar…`;
+    moreBtn.style.display = 'none';
+  } else {
+    moreBtn.disabled = true;
+    moreBtn.textContent = '✨ Mixing more ideas…';
+    status.textContent = '';
+  }
+
+  try {
+    const knownCategories = [...new Set(LIQUOR_DB.map(l => l.category))];
+    const ownedBottles = bar.map(name => `${name} (${categoryOf(name)})`).join(', ');
+    const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
+    const pantryMissing = PANTRY_ITEMS.filter(p => !pantry[p]);
+    const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
+    const maxTokens = Math.min(8000, 800 + count * 220);
+
+    const prompt = `You are a cocktail recipe generator for a home bar app called "The Hardin Bar". Respond with ONLY a JSON array — no markdown fences, no preamble, no commentary, nothing before or after the array.
+
+Owned bottles (name and category): ${ownedBottles}.
+Recipes already in the app, do not repeat these names: ${existingNames.join(', ')}.
+Pantry items currently on hand: ${pantryHave.join(', ') || 'none'}.
+Pantry items not on hand: ${pantryMissing.join(', ') || 'none'}.
+
+Suggest ${count} real, legitimate cocktails that make good use of the owned bottles — prioritize bottles/categories not already used by the existing recipe list, especially specialty bottles like amari, pisco, applejack, absinthe, fruit liqueurs, etc. if owned. No invented drinks. No duplicate names within your own list either.
+
+Return a JSON array where each item has exactly this shape:
+{"name":"Cocktail Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"short garnish or None","ingredients":[{"label":"Display label","amount":"e.g. 2 oz","type":"bar","alt":["CategoryName"]},{"label":"Display label","amount":"e.g. 1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
+
+Rules:
+- For "type":"bar" ingredients, "alt" must use a category name from this list when possible: ${knownCategories.join(', ')}. If the ingredient calls for a specialty bottle's own category (like an Amaro or a Pisco the user owns), use that category name as it appears in the owned-bottles list above.
+- For "type":"fresh" ingredients, "pantry" should be a short common name, capitalized like "Lime juice" or "Simple syrup".
+- Keep instructions to 3 short steps.
+- Output ONLY the JSON array, nothing else.`;
+
+    const response = await fetch(AI_WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: maxTokens,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    if(!response.ok) throw new Error('Request failed: ' + response.status);
+    const data = await response.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const cleaned = textBlocks.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if(!Array.isArray(parsed)) throw new Error('Unexpected response format');
+
+    const existingLower = new Set([...COCKTAILS, ...AI_COCKTAILS].map(c => c.name.toLowerCase()));
+    let added = 0;
+    parsed.forEach(item => {
+      if(!item || !item.name || !Array.isArray(item.ingredients) || !Array.isArray(item.instructions)) return;
+      if(existingLower.has(item.name.toLowerCase())) return;
+
+      const ingredients = item.ingredients.map(ing => {
+        if(ing.type === 'bar'){
+          return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: Array.isArray(ing.alt) && ing.alt.length ? ing.alt : [ing.label] };
+        }
+        const pantryName = ing.pantry || ing.label || 'Misc';
+        // If Claude introduces a new pantry item we don't have a checkbox for yet, add it so it's toggleable.
+        if(!PANTRY_ITEMS.some(p => p.toLowerCase() === pantryName.toLowerCase())){
+          PANTRY_ITEMS.push(pantryName);
+          if(pantry[pantryName] === undefined) pantry[pantryName] = false;
+        }
+        return { label: ing.label || pantryName, amount: ing.amount || '', type:'fresh', pantry: pantryName };
+      });
+
+      AI_COCKTAILS.push({
+        name: item.name,
+        glass: item.glass || 'Rocks',
+        garnish: item.garnish || 'None',
+        ingredients,
+        instructions: item.instructions,
+        isAI: true
+      });
+      existingLower.add(item.name.toLowerCase());
+      added++;
+    });
+
+    status.textContent = added > 0
+      ? `Added ${added} new cocktail idea${added===1?'':'s'} — look for the ✨ AI tag below.`
+      : `Claude didn't return any new ideas this time — try fetching more.`;
+    renderPantry();
+    renderCocktails();
+  } catch(err){
+    console.error(err);
+    status.textContent = "Couldn't get cocktail ideas right now — try again in a moment.";
+    status.classList.add('error');
+  } finally {
+    moreBtn.style.display = 'inline-block';
+    moreBtn.disabled = false;
+    moreBtn.textContent = '✨ Fetch more cocktails';
+  }
+}
+
+/* ---------------- INIT ---------------- */
+renderBar();
+renderPantry();
+renderCocktails();
+</script>
+
+<script type="module">
+  // Firebase Realtime Database sync for the liquor inventory ("bar").
+  // Pantry staples and AI-suggested cocktails stay local/session-only by design —
+  // only the bottle inventory is synced so it's shared across devices.
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  // Fill in with your Firebase project config (Firebase console → Project settings → General → Your apps).
+  // Requires a Realtime Database and Anonymous sign-in enabled (Authentication → Sign-in method → Anonymous).
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+  const barRef = ref(db, 'bar');
+
+  signInAnonymously(auth).then(() => {
+    onValue(barRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data === null){
+        // Nothing in the database yet — seed it once with the app's built-in default inventory.
+        if(window.getDefaultBar) set(barRef, window.getDefaultBar());
+        return;
+      }
+      // data is stored as an object ({0: "...", 1: "..."}) or array depending on how it was written — normalize to an array.
+      const barArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
+      if(window.applyBarUpdate) window.applyBarUpdate(barArray);
+    });
+  }).catch(err => {
+    console.error('Firebase auth failed — falling back to local-only inventory:', err);
+  });
+
+  // Exposed for the main app script to call whenever a bottle is added or removed.
+  window.saveBarToFirebase = function(barArray){
+    set(barRef, barArray).catch(err => console.error('Firebase save failed:', err));
+  };
+</script>
+
+</body>
+</html>
