@@ -584,15 +584,15 @@
     <h2 class="section-title">What can I make?</h2>
     <p class="section-sub">Matched against your bar and pantry, live.</p>
 
+    <div class="ai-more-row">
+      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(10)" style="display:none;">✨ Fetch more cocktails</button>
+    </div>
+
     <p id="aiStatus" class="ai-status"></p>
 
     <div class="filter-row" id="filterRow"></div>
     <div id="shopListBox"></div>
     <div class="cocktail-grid" id="cocktailGrid"></div>
-
-    <div class="ai-more-row">
-      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(3)" style="display:none;">✨ Fetch more cocktails</button>
-    </div>
   </section>
 
 </main>
@@ -989,6 +989,25 @@ window.applyBarUpdate = function(newBar){
   renderBar();
   renderCocktails();
 };
+window.applyAICocktailsUpdate = function(saved){
+  if(!Array.isArray(saved)) return;
+  saved.filter(Boolean).forEach(c => {
+    if(!c || !c.name || !Array.isArray(c.ingredients)) return;
+    c.ingredients.forEach(ing => {
+      if(ing.type === 'fresh'){
+        const p = ing.pantry || ing.label;
+        if(p && !PANTRY_ITEMS.some(x => x.toLowerCase() === p.toLowerCase())){
+          PANTRY_ITEMS.push(p);
+          if(pantry[p] === undefined) pantry[p] = false;
+        }
+      }
+    });
+    if(!AI_COCKTAILS.some(x => x.name.toLowerCase() === c.name.toLowerCase()))
+      AI_COCKTAILS.push({...c, isAI: true});
+  });
+  renderPantry();
+  renderCocktails();
+};
 
 function categoryOf(bottleName){
   const hit = LIQUOR_DB.find(l => l.name.toLowerCase() === bottleName.toLowerCase());
@@ -1007,7 +1026,7 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.getElementById(btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab === 'cocktails' && !aiFetchedOnce){
       aiFetchedOnce = true;
-      fetchAICocktails(3, true);
+      fetchAICocktails(10, true);
     }
   });
 });
@@ -1197,7 +1216,7 @@ function evaluateCocktail(c){
 }
 
 function renderCocktails(){
-  const evaluated = [...COCKTAILS, ...AI_COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
+  const evaluated = [...AI_COCKTAILS, ...COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
 
   // shopping list aggregate (fresh items missing across cocktails that are otherwise ready/almost)
   const shopSet = new Set();
@@ -1288,30 +1307,27 @@ async function fetchAICocktails(count = 10, isInitial = false){
   }
 
   try {
-    const knownCategories = [...new Set(LIQUOR_DB.map(l => l.category))];
-    const ownedBottles = bar.map(name => `${name} (${categoryOf(name)})`).join(', ');
+    const ownedCategories = [...new Set(bar.map(categoryOf))].sort();
     const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
-    const pantryMissing = PANTRY_ITEMS.filter(p => !pantry[p]);
     const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
     const maxTokens = 4000;
 
-    const prompt = `You are a cocktail recipe generator for a home bar app called "The Hardin Bar". Respond with ONLY a JSON array — no markdown fences, no preamble, no commentary, nothing before or after the array.
+    const prompt = `You are a cocktail recipe generator. Respond with ONLY a JSON array — no markdown, no commentary.
 
-Owned bottles (name and category): ${ownedBottles}.
-Recipes already in the app, do not repeat these names: ${existingNames.join(', ')}.
-Pantry items currently on hand: ${pantryHave.join(', ') || 'none'}.
-Pantry items not on hand: ${pantryMissing.join(', ') || 'none'}.
+Spirit categories owned: ${ownedCategories.join(', ')}.
+Pantry items on hand: ${pantryHave.join(', ') || 'none'}.
+Do not repeat these cocktail names: ${existingNames.join(', ')}.
 
-Suggest ${count} real, legitimate cocktails that make good use of the owned bottles — prioritize bottles/categories not already used by the existing recipe list, especially specialty bottles like amari, pisco, applejack, absinthe, fruit liqueurs, etc. if owned. No invented drinks. No duplicate names within your own list either.
+Suggest ${count} real cocktails using the owned categories. Prioritize specialty categories (Amaro, Pisco, Applejack, Absinthe, Crème de Violette, etc.). No invented drinks.
 
-Return a JSON array where each item has exactly this shape:
-{"name":"Cocktail Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"short garnish or None","ingredients":[{"label":"Display label","amount":"e.g. 2 oz","type":"bar","alt":["CategoryName"]},{"label":"Display label","amount":"e.g. 1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
+Each item must have exactly this shape:
+{"name":"Name","glass":"Rocks|Coupe|Highball|Copper mug|Wine glass|Martini|Champagne flute|Shot","garnish":"garnish or None","ingredients":[{"label":"label","amount":"2 oz","type":"bar","alt":["CategoryName"]},{"label":"label","amount":"1/2 oz","type":"fresh","pantry":"Pantry item name"}],"instructions":["Step 1","Step 2","Step 3"]}
 
 Rules:
-- For "type":"bar" ingredients, "alt" must use a category name from this list when possible: ${knownCategories.join(', ')}. If the ingredient calls for a specialty bottle's own category (like an Amaro or a Pisco the user owns), use that category name as it appears in the owned-bottles list above.
-- For "type":"fresh" ingredients, "pantry" should be a short common name, capitalized like "Lime juice" or "Simple syrup".
-- Keep instructions to 3 short steps.
-- Output ONLY the JSON array, nothing else.`;
+- "alt" arrays must use exact category names from the owned list above.
+- "pantry" values must be capitalized short names like "Lime juice".
+- 3 steps max per cocktail.
+- Output ONLY the JSON array.`;
 
     const response = await fetch(AI_WORKER_URL, {
       method: "POST",
@@ -1367,6 +1383,7 @@ Rules:
     status.textContent = added > 0
       ? `Added ${added} new cocktail idea${added===1?'':'s'} — look for the ✨ AI tag below.`
       : `Claude didn't return any new ideas this time — try fetching more.`;
+    if(window.saveAICocktailsToFirebase) window.saveAICocktailsToFirebase(AI_COCKTAILS);
     renderPantry();
     renderCocktails();
   } catch(err){
@@ -1410,6 +1427,7 @@ renderCocktails();
   const db = getDatabase(app);
   const auth = getAuth(app);
   const barRef = ref(db, 'bar');
+  const aiRef = ref(db, 'aiCocktails');
 
   function setSyncStatus(msg, isError){
     let el = document.getElementById('syncStatus');
@@ -1450,6 +1468,18 @@ renderCocktails();
   // Exposed for the main app script to call whenever a bottle is added or removed.
   window.saveBarToFirebase = function(barArray){
     set(barRef, barArray).catch(err => console.error('Firebase save failed:', err));
+  };
+
+  // Load saved AI cocktails on startup, then keep in sync.
+  onValue(aiRef, (snapshot) => {
+    const data = snapshot.val();
+    if(!data) return;
+    const arr = Array.isArray(data) ? data : Object.values(data);
+    if(window.applyAICocktailsUpdate) window.applyAICocktailsUpdate(arr);
+  });
+
+  window.saveAICocktailsToFirebase = function(cocktails){
+    set(aiRef, cocktails).catch(err => console.error('Firebase AI save failed:', err));
   };
 </script>
 
