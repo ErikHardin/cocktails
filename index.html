@@ -1068,6 +1068,21 @@ window.applyBarUpdate = function(newBar){
   renderBar();
   renderCocktails();
 };
+window.getDefaultPantry = function(){
+  const obj = {};
+  PANTRY_ITEMS.forEach(p => obj[p] = PANTRY_DEFAULT_CHECKED.includes(p));
+  return obj;
+};
+window.applyPantryUpdate = function(data){
+  Object.keys(data).forEach(item => {
+    if(!PANTRY_ITEMS.some(p => p.toLowerCase() === item.toLowerCase())){
+      PANTRY_ITEMS.push(item);
+    }
+    pantry[item] = data[item];
+  });
+  renderPantry();
+  renderCocktails();
+};
 window.applyAICocktailsUpdate = function(saved){
   if(!Array.isArray(saved)) return;
   saved.filter(Boolean).forEach(c => {
@@ -1229,6 +1244,7 @@ function renderPantry(){
 }
 function togglePantry(item){
   pantry[item] = !pantry[item];
+  if(window.savePantryToFirebase) window.savePantryToFirebase(pantry);
   renderCocktails();
 }
 function addPantryItem(){
@@ -1241,6 +1257,7 @@ function addPantryItem(){
   }
   pantry[val] = true; // assume if you're adding it, you have it
   input.value = '';
+  if(window.savePantryToFirebase) window.savePantryToFirebase(pantry);
   renderPantry();
   renderCocktails();
 }
@@ -1510,9 +1527,8 @@ renderCocktails();
 </script>
 
 <script type="module">
-  // Firebase Realtime Database sync for the liquor inventory ("bar").
-  // Pantry staples and AI-suggested cocktails stay local/session-only by design —
-  // only the bottle inventory is synced so it's shared across devices.
+  // Firebase Realtime Database sync for the liquor inventory ("bar") and pantry staples.
+  // AI-suggested cocktails stay local/session-only by design.
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -1533,6 +1549,7 @@ renderCocktails();
   const db = getDatabase(app);
   const auth = getAuth(app);
   const barRef = ref(db, 'bar');
+  const pantryRef = ref(db, 'pantry');
   const aiRef = ref(db, 'aiCocktails');
 
   function setSyncStatus(msg, isError){
@@ -1566,6 +1583,18 @@ renderCocktails();
       console.error('Firebase read failed:', err);
       setSyncStatus('⚠ Sync failed: ' + err.message, true);
     });
+
+    onValue(pantryRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data === null){
+        if(window.getDefaultPantry) set(pantryRef, window.getDefaultPantry());
+        return;
+      }
+      if(window.applyPantryUpdate) window.applyPantryUpdate(data);
+      setSyncStatus('✓ Pantry synced', false);
+    }, (err) => {
+      console.error('Firebase pantry read failed:', err);
+    });
   }).catch(err => {
     console.error('Firebase auth failed — falling back to local-only inventory:', err);
     setSyncStatus('⚠ Firebase auth failed: ' + err.message, true);
@@ -1574,6 +1603,10 @@ renderCocktails();
   // Exposed for the main app script to call whenever a bottle is added or removed.
   window.saveBarToFirebase = function(barArray){
     set(barRef, barArray).catch(err => console.error('Firebase save failed:', err));
+  };
+
+  window.savePantryToFirebase = function(pantryObj){
+    set(pantryRef, pantryObj).catch(err => console.error('Firebase pantry save failed:', err));
   };
 
   // Load saved AI cocktails on startup, then keep in sync.
