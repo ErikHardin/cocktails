@@ -1007,7 +1007,7 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.getElementById(btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab === 'cocktails' && !aiFetchedOnce){
       aiFetchedOnce = true;
-      fetchAICocktails(25, true);
+      fetchAICocktails(8, true);
     }
   });
 });
@@ -1293,7 +1293,7 @@ async function fetchAICocktails(count = 10, isInitial = false){
     const pantryHave = PANTRY_ITEMS.filter(p => pantry[p]);
     const pantryMissing = PANTRY_ITEMS.filter(p => !pantry[p]);
     const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
-    const maxTokens = Math.min(8000, 800 + count * 220);
+    const maxTokens = Math.min(3000, 400 + count * 200);
 
     const prompt = `You are a cocktail recipe generator for a home bar app called "The Hardin Bar". Respond with ONLY a JSON array — no markdown fences, no preamble, no commentary, nothing before or after the array.
 
