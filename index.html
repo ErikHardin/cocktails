@@ -262,25 +262,6 @@
   }
   .filter-row button.active{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600;}
 
-  .shop-list{
-    background:var(--bg-card);
-    border:1px dashed var(--amber);
-    border-radius:12px;
-    padding:16px 20px;
-    margin-bottom:26px;
-    font-size:0.86rem;
-  }
-  .shop-list strong{ color:var(--amber-bright); display:block; margin-bottom:6px; font-family:'Fraunces',serif; font-size:1rem;}
-  .shop-list span.tag{
-    display:inline-block;
-    background:var(--bg-card-2);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:3px 9px;
-    margin:3px 4px 0 0;
-    font-size:0.78rem;
-    color:var(--cream);
-  }
 
   /* --- Cocktail grid: mobile-first 2-column compact --- */
   .cocktail-grid{
@@ -432,18 +413,49 @@
     .ai-badge{ font-size:0.62rem; padding:2px 6px; margin-right:6px; }
   }
 
-  .spirit-row{
-    display:flex;
-    gap:6px;
+  .spirit-filter-box{
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
     margin-bottom:16px;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    padding-bottom:2px;
   }
-  .spirit-row::-webkit-scrollbar{ display:none; }
-  .spirit-row button{
+  .spirit-filter-toggle{
+    width:100%;
     background:var(--bg-card);
+    border:none;
+    color:var(--cream);
+    padding:12px 16px;
+    font-family:'Inter',sans-serif;
+    font-size:0.85rem;
+    font-weight:500;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    text-align:left;
+  }
+  .spirit-filter-toggle:hover{ background:var(--bg-card-2); }
+  .spirit-active-indicator{
+    margin-left:8px;
+    color:var(--amber-bright);
+    font-size:0.78rem;
+    font-weight:400;
+  }
+  .spirit-filter-panel{
+    display:none;
+    padding:12px 14px 14px;
+    background:var(--bg-card);
+    border-top:1px solid var(--line);
+  }
+  .spirit-filter-panel.open{ display:block; }
+  .spirit-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:12px;
+  }
+  .spirit-grid button{
+    background:var(--bg-card-2);
     border:1px solid var(--line);
     color:var(--muted);
     padding:6px 13px;
@@ -452,9 +464,22 @@
     cursor:pointer;
     font-family:'Inter',sans-serif;
     white-space:nowrap;
-    flex-shrink:0;
   }
-  .spirit-row button.active{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600; }
+  .spirit-grid button.selected{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600; }
+  .apply-filter-btn{
+    background:var(--amber);
+    border:none;
+    color:#1a1512;
+    padding:8px 20px;
+    border-radius:8px;
+    font-weight:600;
+    font-size:0.84rem;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    width:100%;
+    margin-top:4px;
+  }
+  .apply-filter-btn:hover{ filter:brightness(1.08); }
 
   .empty-state{
     text-align:center;
@@ -634,8 +659,16 @@
     <p id="aiStatus" class="ai-status"></p>
 
     <div class="filter-row" id="filterRow"></div>
-    <div class="spirit-row" id="spiritRow"></div>
-    <div id="shopListBox"></div>
+    <div class="spirit-filter-box">
+      <button class="spirit-filter-toggle" onclick="toggleSpiritFilter()">
+        <span>Filter by spirit<span class="spirit-active-indicator" id="spiritActiveIndicator"></span></span>
+        <span id="spiritFilterChevron">▾</span>
+      </button>
+      <div class="spirit-filter-panel" id="spiritFilterPanel">
+        <div class="spirit-grid" id="spiritRow"></div>
+        <button class="apply-filter-btn" onclick="applySpiritFilter()">Apply filter</button>
+      </div>
+    </div>
     <div class="cocktail-grid" id="cocktailGrid"></div>
   </section>
 
@@ -1024,6 +1057,8 @@ let pantry = {};
 PANTRY_ITEMS.forEach(p => pantry[p] = PANTRY_DEFAULT_CHECKED.includes(p));
 let currentFilter = "all";
 let currentSpirit = "all";
+let pendingSpirit = "all";
+let spiritFilterOpen = false;
 let AI_COCKTAILS = []; // cocktails suggested live by Claude based on current bar + pantry
 
 // Hooks the Firebase module script (bottom of page) calls into.
@@ -1243,17 +1278,37 @@ function renderSpiritFilter(){
   );
   const sorted = [...spirits].sort();
   const row = document.getElementById('spiritRow');
+  if(!row) return;
   row.innerHTML = [
-    `<button data-spirit="all" class="${currentSpirit==='all'?'active':''}">All spirits</button>`,
-    ...sorted.map(s => `<button data-spirit="${s}" class="${currentSpirit===s?'active':''}">${s}</button>`)
+    `<button data-spirit="all" class="${pendingSpirit==='all'?'selected':''}">All spirits</button>`,
+    ...sorted.map(s => `<button data-spirit="${s}" class="${pendingSpirit===s?'selected':''}">${s}</button>`)
   ].join('');
   row.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentSpirit = btn.dataset.spirit;
+      pendingSpirit = btn.dataset.spirit;
       renderSpiritFilter();
-      renderCocktails();
     });
   });
+}
+
+function toggleSpiritFilter(){
+  spiritFilterOpen = !spiritFilterOpen;
+  if(spiritFilterOpen){
+    pendingSpirit = currentSpirit;
+    renderSpiritFilter();
+  }
+  document.getElementById('spiritFilterPanel').classList.toggle('open', spiritFilterOpen);
+  document.getElementById('spiritFilterChevron').textContent = spiritFilterOpen ? '▴' : '▾';
+}
+
+function applySpiritFilter(){
+  currentSpirit = pendingSpirit;
+  spiritFilterOpen = false;
+  document.getElementById('spiritFilterPanel').classList.remove('open');
+  document.getElementById('spiritFilterChevron').textContent = '▾';
+  const ind = document.getElementById('spiritActiveIndicator');
+  if(ind) ind.textContent = currentSpirit !== 'all' ? ` · ${currentSpirit}` : '';
+  renderCocktails();
 }
 
 function evaluateCocktail(c){
@@ -1281,20 +1336,6 @@ function evaluateCocktail(c){
 
 function renderCocktails(){
   const evaluated = [...AI_COCKTAILS, ...COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
-
-  // shopping list aggregate (fresh items missing across cocktails that are otherwise ready/almost)
-  const shopSet = new Set();
-  evaluated.forEach(({ev}) => { if(ev.status !== 'missing') ev.missingFresh.forEach(f => shopSet.add(f)); });
-  const shopBox = document.getElementById('shopListBox');
-  if(shopSet.size > 0){
-    shopBox.innerHTML = `
-      <div class="shop-list">
-        <strong>Grab these and unlock more cocktails</strong>
-        ${[...shopSet].map(i => `<span class="tag">${i}</span>`).join('')}
-      </div>`;
-  } else {
-    shopBox.innerHTML = '';
-  }
 
   let filtered = evaluated.filter(({ev}) => currentFilter==='all' || ev.status===currentFilter);
   if(currentSpirit !== 'all'){
