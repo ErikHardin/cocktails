@@ -25,12 +25,18 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type",
     };
 
+    const { pathname } = new URL(request.url);
+
+    if (pathname !== "/api") {
+      return env.ASSETS.fetch(request);
+    }
+
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
     if (request.method !== "POST") {
-      return env.ASSETS.fetch(request);
+      return new Response("Method not allowed", { status: 405, headers: corsHeaders });
     }
 
     if (!env.ANTHROPIC_API_KEY) {
