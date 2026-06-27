@@ -1217,6 +1217,7 @@ window.applySpiritTypesUpdate = function(data){
 };
 window.applyBarUpdate = function(newBar){
   bar = newBar;
+  purgeInvalidAICocktails();
   renderBar();
   renderCocktails();
 };
@@ -1235,6 +1236,61 @@ window.applyPantryUpdate = function(data){
   renderPantry();
   renderCocktails();
 };
+// Labels that are clearly fresh/pantry ingredients, not spirits — used to re-type misclassified bar ingredients.
+const FRESH_LABEL = /\b(juice|syrup|soda|water|bitters|beer|cream|egg|milk|mint|honey|sugar|ice|tonic)\b/i;
+
+// Purge and sanitize AI_COCKTAILS based on current bar state, save to Firebase if anything changed.
+// Safe to call any time; no-ops if bar isn't loaded yet.
+function purgeInvalidAICocktails(){
+  if(!bar.length || !AI_COCKTAILS.length) return;
+  const ownedCategories = [...new Set(bar.map(categoryOf))];
+  const ownsCategory = a => ownedCategories.some(o => o.toLowerCase() === a.toLowerCase());
+  const before = AI_COCKTAILS.length;
+  const cleaned = AI_COCKTAILS
+    .map(c => ({
+      ...c,
+      ingredients: c.ingredients.map(i => {
+        // Re-type bar ingredients whose labels are clearly fresh items (juice, syrup, etc.)
+        if(i.type === 'bar' && FRESH_LABEL.test(i.label)){
+          const pantryName = i.label;
+          if(!PANTRY_ITEMS.some(p => p.toLowerCase() === pantryName.toLowerCase()))
+            PANTRY_ITEMS.push(pantryName);
+          if(pantry[pantryName] === undefined) pantry[pantryName] = false;
+          return { label: i.label, amount: i.amount, type: 'fresh', pantry: pantryName };
+        }
+        // Fix fresh ingredients where the pantry key doesn't match the label (AI error).
+        // e.g. label:"Orange juice", pantry:"Lemon juice" — use the label as the canonical key.
+        if(i.type === 'fresh' && i.label && i.pantry && i.label.toLowerCase() !== i.pantry.toLowerCase()){
+          const pantryName = i.label;
+          if(!PANTRY_ITEMS.some(p => p.toLowerCase() === pantryName.toLowerCase()))
+            PANTRY_ITEMS.push(pantryName);
+          if(pantry[pantryName] === undefined) pantry[pantryName] = false;
+          return { ...i, pantry: pantryName };
+        }
+        if(i.type !== 'bar' || !Array.isArray(i.alt)) return i;
+        const ownedAlts = i.alt.filter(ownsCategory);
+        if(!ownedAlts.length) return i;
+        const familyAlts = validAltsForLabel(i.label, ownedAlts);
+        return familyAlts.length ? { ...i, alt: familyAlts } : i;
+      })
+    }))
+    .filter(c =>
+      c.ingredients.filter(i => i.type === 'bar').every(i => {
+        if(!Array.isArray(i.alt) || !i.alt.some(ownsCategory)) return false;
+        return validAltsForLabel(i.label, i.alt.filter(ownsCategory)).length > 0;
+      })
+    );
+  const changed = cleaned.length !== before || cleaned.some((c, idx) =>
+    JSON.stringify(c.ingredients) !== JSON.stringify(AI_COCKTAILS[idx]?.ingredients)
+  );
+  AI_COCKTAILS.splice(0, AI_COCKTAILS.length, ...cleaned);
+  if(changed){
+    if(window.saveAICocktailsToFirebase) window.saveAICocktailsToFirebase(AI_COCKTAILS);
+    renderSpiritFilter();
+    renderCocktails();
+  }
+}
+
 window.applyAICocktailsUpdate = function(saved){
   if(!Array.isArray(saved)) return;
   saved.filter(Boolean).forEach(c => {
@@ -1251,6 +1307,7 @@ window.applyAICocktailsUpdate = function(saved){
     if(!AI_COCKTAILS.some(x => x.name.toLowerCase() === c.name.toLowerCase()))
       AI_COCKTAILS.push({...c, isAI: true});
   });
+  purgeInvalidAICocktails();
   renderPantry();
   renderSpiritFilter();
   renderCocktails();
@@ -1676,30 +1733,7 @@ async function fetchAICocktails(count = 10){
     // Case-insensitive owned-category check (Claude sometimes varies capitalization).
     const ownsCategory = a => ownedCategories.some(o => o.toLowerCase() === a.toLowerCase());
 
-    // Clean and purge previously saved AI cocktails.
-    // First, strip wrong-family categories from each ingredient's alt array.
-    // Then drop any cocktail where a bar ingredient has no remaining valid alt.
-    const cleanedCocktails = AI_COCKTAILS
-      .map(c => ({
-        ...c,
-        ingredients: c.ingredients.map(i => {
-          if(i.type !== 'bar' || !Array.isArray(i.alt)) return i;
-          const ownedAlts = i.alt.filter(ownsCategory);
-          if(!ownedAlts.length) return i; // nothing owned — caught by filter below
-          const familyAlts = validAltsForLabel(i.label, ownedAlts);
-          return familyAlts.length ? { ...i, alt: familyAlts } : i; // strip wrong-family alts; if all wrong, filter below drops cocktail
-        })
-      }))
-      .filter(c =>
-        c.ingredients
-          .filter(i => i.type === 'bar')
-          .every(i => {
-            if(!Array.isArray(i.alt) || !i.alt.some(ownsCategory)) return false;
-            const ownedAlts = i.alt.filter(ownsCategory);
-            return validAltsForLabel(i.label, ownedAlts).length > 0;
-          })
-      );
-    AI_COCKTAILS.splice(0, AI_COCKTAILS.length, ...cleanedCocktails);
+    purgeInvalidAICocktails();
 
     // Build name lists after the purge so Claude doesn't re-avoid removed cocktails.
     const existingNames = [...COCKTAILS, ...AI_COCKTAILS].map(c => c.name);
