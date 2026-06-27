@@ -634,6 +634,83 @@
     letter-spacing:0.01em;
     opacity:0.85;
   }
+  .add-bottle-btn{
+    width:100%;
+    background:var(--bg-card);
+    border:1px dashed var(--amber);
+    color:var(--amber-bright);
+    padding:12px;
+    border-radius:10px;
+    font-family:'Inter',sans-serif;
+    font-size:0.9rem;
+    font-weight:600;
+    cursor:pointer;
+    margin-bottom:14px;
+    letter-spacing:0.02em;
+  }
+  .add-bottle-btn:hover{ background:rgba(201,138,60,0.08); }
+  .add-form-input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--cream);
+    padding:11px 14px;
+    border-radius:8px;
+    font-size:0.93rem;
+    font-family:'Inter',sans-serif;
+    box-sizing:border-box;
+  }
+  .add-form-input:focus{ outline:none; border-color:var(--amber); }
+  .cat-suggestions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .cat-pill{
+    background:var(--bg-card-2);
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:0.76rem;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    white-space:nowrap;
+  }
+  .cat-pill:hover{ border-color:var(--amber); color:var(--amber-bright); }
+  .cat-pill.selected{ background:var(--amber); border-color:var(--amber); color:#1a1512; font-weight:600; }
+  .add-bottle-actions{
+    display:flex;
+    gap:10px;
+    margin-top:24px;
+  }
+  .add-cancel-btn{
+    flex:1;
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:11px;
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:0.88rem;
+    cursor:pointer;
+  }
+  .add-cancel-btn:hover{ border-color:var(--cream); color:var(--cream); }
+  .add-confirm-btn{
+    flex:2;
+    background:var(--amber);
+    border:none;
+    color:#1a1512;
+    padding:11px;
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:0.88rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .add-confirm-btn:hover{ filter:brightness(1.08); }
+  .modal-card .suggest{ right:0; top:calc(100% + 4px); }
 </style>
 </head>
 <body>
@@ -652,13 +729,9 @@
 
   <section id="bar" class="active">
     <h2 class="section-title">Inventory</h2>
-    <p class="section-sub">Search a bottle to add it, or type your own and hit Add.</p>
+    <p class="section-sub">Add bottles to your bar and check off your pantry staples.</p>
 
-    <div class="add-row">
-      <input type="text" id="bottleInput" placeholder="Search a bottle… e.g. Hendrick's, Bourbon, Campari" autocomplete="off">
-      <button onclick="addCustomBottle()">Add</button>
-      <div class="suggest" id="suggestBox"></div>
-    </div>
+    <button class="add-bottle-btn" onclick="openAddBottleModal()">+ Add a bottle</button>
 
     <div class="collapsible-box">
       <button class="collapsible-toggle" onclick="toggleSection('pantrySection','pantryChevron')">
@@ -715,6 +788,36 @@
   <div class="modal-card">
     <button class="modal-close" onclick="closeModal()">×</button>
     <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addBottleOverlay" onclick="if(event.target===this) closeAddBottleModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeAddBottleModal()">×</button>
+    <h2 style="font-family:'Fraunces',serif;font-size:1.5rem;margin:0 0 20px;font-weight:600;">Add a bottle</h2>
+    <p class="modal-section-label">Name</p>
+    <div style="position:relative;">
+      <input type="text" id="addBottleName" class="add-form-input" placeholder="e.g. Hendrick's Gin, Bulleit Rye…" autocomplete="off">
+      <div class="suggest" id="addBottleSuggest"></div>
+    </div>
+    <p class="modal-section-label" style="margin-top:18px;">Type</p>
+    <div class="cat-suggestions" id="catSuggestions"></div>
+    <input type="text" id="addBottleCat" class="add-form-input" placeholder="Select a type above, or enter a custom one…" autocomplete="off">
+    <div class="add-bottle-actions">
+      <button class="add-cancel-btn" onclick="closeAddBottleModal()">Cancel</button>
+      <button class="add-confirm-btn" onclick="confirmAddBottle()">Add to bar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteConfirmOverlay">
+  <div class="modal-card" style="max-width:360px;">
+    <h2 style="font-family:'Fraunces',serif;font-size:1.3rem;margin:0 0 10px;font-weight:600;">Remove bottle?</h2>
+    <p id="deleteConfirmText" style="color:var(--muted);font-size:0.9rem;margin:0 0 24px;line-height:1.5;"></p>
+    <div class="add-bottle-actions" style="margin-top:0;">
+      <button class="add-cancel-btn" onclick="closeDeleteConfirm()">Cancel</button>
+      <button class="add-confirm-btn" style="background:var(--danger);" onclick="confirmDeleteBottle()">Remove</button>
+    </div>
   </div>
 </div>
 
@@ -1172,48 +1275,73 @@ document.querySelectorAll('nav button').forEach(btn=>{
 });
 
 /* ---------------- BAR TAB ---------------- */
-const bottleInput = document.getElementById('bottleInput');
-const suggestBox = document.getElementById('suggestBox');
+let pendingDeleteIdx = null;
 
-bottleInput.addEventListener('input', ()=>{
-  const q = bottleInput.value.trim().toLowerCase();
-  if(!q){ suggestBox.classList.remove('show'); return; }
-  const matches = liquorDb.filter(l =>
-    l.name.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)
-  ).slice(0,8);
-  if(matches.length===0){ suggestBox.classList.remove('show'); return; }
-  suggestBox.innerHTML = matches.map(m =>
-    `<div onclick="selectSuggestion('${m.name.replace(/'/g,"\\'")}')">${m.name} <span class="cat">${m.category}</span></div>`
-  ).join('');
-  suggestBox.classList.add('show');
-});
-bottleInput.addEventListener('keydown', e=>{
-  if(e.key === 'Enter'){ addCustomBottle(); }
-});
 document.addEventListener('click', e=>{
-  if(!suggestBox.contains(e.target) && e.target !== bottleInput){ suggestBox.classList.remove('show'); }
+  const nameSuggest = document.getElementById('addBottleSuggest');
+  const nameInput = document.getElementById('addBottleName');
+  if(nameSuggest && !nameSuggest.contains(e.target) && e.target !== nameInput){
+    nameSuggest.classList.remove('show');
+  }
 });
 
-function selectSuggestion(name){
-  bottleInput.value = name;
-  suggestBox.classList.remove('show');
-  addCustomBottle();
+function openAddBottleModal(){
+  document.getElementById('addBottleName').value = '';
+  document.getElementById('addBottleCat').value = '';
+  document.getElementById('addBottleSuggest').classList.remove('show');
+  renderCatSuggestions('');
+  document.getElementById('addBottleOverlay').classList.add('show');
+  setTimeout(()=> document.getElementById('addBottleName').focus(), 50);
 }
-function addCustomBottle(){
-  const val = bottleInput.value.trim();
-  if(!val) return;
-  bar.push(val);
-  bottleInput.value = '';
-  suggestBox.classList.remove('show');
+function closeAddBottleModal(){
+  document.getElementById('addBottleOverlay').classList.remove('show');
+}
+function renderCatSuggestions(selectedCat){
+  const cats = [...new Set(bar.map(categoryOf))].sort();
+  document.getElementById('catSuggestions').innerHTML = cats.map(cat =>
+    `<span class="cat-pill${cat===selectedCat?' selected':''}" onclick="selectCatPill('${cat.replace(/'/g,"\\'")}')">${cat}</span>`
+  ).join('');
+}
+function selectCatPill(cat){
+  document.getElementById('addBottleCat').value = cat;
+  renderCatSuggestions(cat);
+}
+function selectAddSuggestion(name, category){
+  document.getElementById('addBottleName').value = name;
+  document.getElementById('addBottleSuggest').classList.remove('show');
+  document.getElementById('addBottleCat').value = category;
+  renderCatSuggestions(category);
+}
+function confirmAddBottle(){
+  const name = document.getElementById('addBottleName').value.trim();
+  if(!name) return;
+  const cat = document.getElementById('addBottleCat').value.trim() || name;
+  if(!liquorDb.some(l => l.name.toLowerCase() === name.toLowerCase())){
+    liquorDb.push({name, category: cat});
+    if(window.saveLiquorDbToFirebase) window.saveLiquorDbToFirebase(liquorDb);
+  }
+  bar.push(name);
   renderBar();
   renderCocktails();
   if(window.saveBarToFirebase) window.saveBarToFirebase(bar);
+  closeAddBottleModal();
 }
 function removeBottle(idx){
-  bar.splice(idx,1);
+  pendingDeleteIdx = idx;
+  document.getElementById('deleteConfirmText').textContent = `Remove "${bar[idx]}" from your bar?`;
+  document.getElementById('deleteConfirmOverlay').classList.add('show');
+}
+function closeDeleteConfirm(){
+  pendingDeleteIdx = null;
+  document.getElementById('deleteConfirmOverlay').classList.remove('show');
+}
+function confirmDeleteBottle(){
+  if(pendingDeleteIdx === null) return;
+  bar.splice(pendingDeleteIdx, 1);
   renderBar();
   renderCocktails();
   if(window.saveBarToFirebase) window.saveBarToFirebase(bar);
+  closeDeleteConfirm();
 }
 
 /* ---------------- VISUAL HELPERS ---------------- */
@@ -1321,6 +1449,26 @@ function addPantryItem(){
 document.addEventListener('DOMContentLoaded', ()=>{
   const pi = document.getElementById('pantryInput');
   if(pi) pi.addEventListener('keydown', e=>{ if(e.key==='Enter') addPantryItem(); });
+
+  const nameInput = document.getElementById('addBottleName');
+  const nameSuggest = document.getElementById('addBottleSuggest');
+  if(nameInput){
+    nameInput.addEventListener('input', ()=>{
+      const q = nameInput.value.trim().toLowerCase();
+      if(!q){ nameSuggest.classList.remove('show'); return; }
+      const matches = liquorDb.filter(l =>
+        l.name.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)
+      ).slice(0,8);
+      if(!matches.length){ nameSuggest.classList.remove('show'); return; }
+      nameSuggest.innerHTML = matches.map(m =>
+        `<div onclick="selectAddSuggestion('${m.name.replace(/'/g,"\\'")}','${m.category.replace(/'/g,"\\'")}')">${m.name} <span class="cat">${m.category}</span></div>`
+      ).join('');
+      nameSuggest.classList.add('show');
+    });
+    nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddBottle(); });
+  }
+  const catInput = document.getElementById('addBottleCat');
+  if(catInput) catInput.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddBottle(); });
 });
 
 /* ---------------- COCKTAILS TAB ---------------- */
@@ -1479,7 +1627,9 @@ function openCocktailModal(name){
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('show');
 }
-document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ closeModal(); closeAddBottleModal(); closeDeleteConfirm(); }
+});
 
 /* ---------------- AI COCKTAIL SUGGESTIONS ---------------- */
 async function fetchAICocktails(count = 10){
@@ -1732,6 +1882,10 @@ renderCocktails();
 
   window.saveAICocktailsToFirebase = function(cocktails){
     set(aiRef, cocktails).catch(err => console.error('Firebase AI save failed:', err));
+  };
+
+  window.saveLiquorDbToFirebase = function(db){
+    set(liquorDbRef, db).catch(err => console.error('Firebase liquorDb save failed:', err));
   };
 </script>
 
