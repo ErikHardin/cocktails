@@ -1630,6 +1630,9 @@ function closeModal(){
 document.addEventListener('keydown', e=>{
   if(e.key === 'Escape'){ closeModal(); closeAddBottleModal(); closeDeleteConfirm(); }
 });
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') renderCocktails();
+});
 
 /* ---------------- AI COCKTAIL SUGGESTIONS ---------------- */
 
