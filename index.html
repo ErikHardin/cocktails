@@ -584,15 +584,15 @@
     <h2 class="section-title">What can I make?</h2>
     <p class="section-sub">Matched against your bar and pantry, live.</p>
 
+    <div class="ai-more-row">
+      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(10)" style="display:none;">✨ Fetch more cocktails</button>
+    </div>
+
     <p id="aiStatus" class="ai-status"></p>
 
     <div class="filter-row" id="filterRow"></div>
     <div id="shopListBox"></div>
     <div class="cocktail-grid" id="cocktailGrid"></div>
-
-    <div class="ai-more-row">
-      <button id="aiMoreBtn" class="ai-btn" onclick="fetchAICocktails(3)" style="display:none;">✨ Fetch more cocktails</button>
-    </div>
   </section>
 
 </main>
@@ -1007,7 +1007,7 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.getElementById(btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab === 'cocktails' && !aiFetchedOnce){
       aiFetchedOnce = true;
-      fetchAICocktails(3, true);
+      fetchAICocktails(10, true);
     }
   });
 });
@@ -1197,7 +1197,7 @@ function evaluateCocktail(c){
 }
 
 function renderCocktails(){
-  const evaluated = [...COCKTAILS, ...AI_COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
+  const evaluated = [...AI_COCKTAILS, ...COCKTAILS].map(c => ({c, ev: evaluateCocktail(c)}));
 
   // shopping list aggregate (fresh items missing across cocktails that are otherwise ready/almost)
   const shopSet = new Set();
