@@ -1632,6 +1632,30 @@ document.addEventListener('keydown', e=>{
 });
 
 /* ---------------- AI COCKTAIL SUGGESTIONS ---------------- */
+
+// Spirit families used to catch cross-family substitutions (e.g. Applejack ≠ Rye Whiskey).
+const SPIRIT_FAMILIES = [
+  { keywords: /\b(rye|bourbon|scotch|whiskey|whisky)\b/i, cats: new Set(["Bourbon","Rye Whiskey","Scotch","Irish Whiskey","American Single Malt Whiskey"]) },
+  { keywords: /\bgin\b/i,                                  cats: new Set(["Gin"]) },
+  { keywords: /\bvodka\b/i,                                cats: new Set(["Vodka"]) },
+  { keywords: /\b(rum|rhum|cachaça)\b/i,                  cats: new Set(["White Rum","Dark Rum","Spiced Rum","Gold Rum","Coconut Rum","Coffee Rum","Aguardiente de Caña"]) },
+  { keywords: /\b(tequila|mezcal)\b/i,                    cats: new Set(["Tequila","Mezcal"]) },
+  { keywords: /\b(brandy|cognac|pisco|applejack|calvados)\b/i, cats: new Set(["Brandy","Cognac","Pisco","Applejack"]) },
+];
+
+// Returns the owned alts filtered to the correct spirit family (derived from the ingredient label).
+// Returns [] if the label signals a specific family but none of the owned alts belong to it —
+// that signals a wrong-spirit substitution and lets the caller reject the cocktail.
+function validAltsForLabel(label, ownedAlts){
+  for(const { keywords, cats } of SPIRIT_FAMILIES){
+    if(keywords.test(label)){
+      const filtered = ownedAlts.filter(a => cats.has(a));
+      return filtered; // may be [] — caller handles that as a rejection signal
+    }
+  }
+  return ownedAlts; // label doesn't hint at a specific family; keep all owned alts
+}
+
 async function fetchAICocktails(count = 10){
   const moreBtn = document.getElementById('aiMoreBtn');
   const status = document.getElementById('aiStatus');
@@ -1655,7 +1679,11 @@ async function fetchAICocktails(count = 10){
       ...AI_COCKTAILS.filter(c =>
         c.ingredients
           .filter(i => i.type === 'bar')
-          .every(i => Array.isArray(i.alt) && i.alt.some(ownsCategory))
+          .every(i => {
+            if(!Array.isArray(i.alt) || !i.alt.some(ownsCategory)) return false;
+            const ownedAlts = i.alt.filter(ownsCategory);
+            return validAltsForLabel(i.label, ownedAlts).length > 0;
+          })
       )
     );
 
@@ -1675,7 +1703,7 @@ Each item must have exactly this shape:
 
 Rules:
 - Only include a cocktail if EVERY bar ingredient it requires is present in the owned categories list. If a recipe needs Sweet Vermouth and Sweet Vermouth is not owned, omit that cocktail entirely — do NOT substitute a different spirit.
-- "alt" arrays must only contain category names from the owned list that genuinely belong in that ingredient slot. Genuine culinary substitutes are allowed (e.g., Bourbon and Rye Whiskey are interchangeable in many recipes), but never list an unrelated spirit as an alternative.
+- "alt" arrays must only contain category names from the owned list that genuinely belong in that ingredient slot. Only spirits within the same base-spirit family may substitute (e.g., Bourbon ↔ Rye Whiskey are both whiskeys). NEVER cross families: Applejack is an apple brandy — it is NOT a substitute for any whiskey (Rye, Bourbon, Scotch, etc.). Rum ≠ Brandy. Gin ≠ Vodka. Tequila ≠ Mezcal ≠ anything else.
 - "pantry" values must be capitalized short names like "Lime juice".
 - 3 steps max per cocktail.
 - Output ONLY the JSON array.`;
@@ -1709,9 +1737,13 @@ Rules:
       const ingredients = item.ingredients.map(ing => {
         if(ing.type === 'bar'){
           const rawAlt = Array.isArray(ing.alt) && ing.alt.length ? ing.alt : [ing.label];
-          // Keep only categories the user actually owns; filter out hallucinated substitutions.
-          const validAlt = rawAlt.filter(ownsCategory);
-          return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: validAlt.length ? validAlt : rawAlt };
+          const ownedAlts = rawAlt.filter(ownsCategory);
+          // If nothing is owned, keep rawAlt so the allBarIngsSatisfied check fails via ownsCategory.
+          // If something is owned, apply family filtering. An empty result here means the AI put a
+          // wrong-family spirit as a substitute (e.g. Applejack for Rye Whiskey); returning []
+          // causes allBarIngsSatisfied to reject the cocktail.
+          const bestAlt = ownedAlts.length === 0 ? rawAlt : validAltsForLabel(ing.label || '', ownedAlts);
+          return { label: ing.label || 'Spirit', amount: ing.amount || '', type:'bar', alt: bestAlt };
         }
         const pantryName = ing.pantry || ing.label || 'Misc';
         // If Claude introduces a new pantry item we don't have a checkbox for yet, add it so it's toggleable.
