@@ -282,17 +282,17 @@
     color:var(--cream);
   }
 
-  /* --- Cocktail grid: mobile-first 3-column compact --- */
+  /* --- Cocktail grid: mobile-first 2-column compact --- */
   .cocktail-grid{
     display:grid;
-    grid-template-columns:repeat(3,1fr);
+    grid-template-columns:repeat(2,1fr);
     gap:8px;
   }
   .ticket{
     background:var(--bg-card);
     border:1px solid var(--line);
     border-radius:4px;
-    padding:10px 8px 8px;
+    padding:12px 10px 10px;
     position:relative;
     box-shadow:var(--shadow);
     background-image:
@@ -314,7 +314,7 @@
   }
   .ticket-head h3{
     font-family:'Fraunces',serif;
-    font-size:0.75rem;
+    font-size:0.85rem;
     line-height:1.25;
     margin:0;
     font-weight:600;
@@ -336,10 +336,10 @@
   .stamp.almost{ color:var(--amber-bright); }
   .stamp.missing{ color:var(--danger); }
 
-  .ing-list{ list-style:none; margin:0 0 12px; padding:0; display:none; }
+  .ing-list{ list-style:none; margin:0 0 8px; padding:0; }
   .ing-list li{
-    font-size:0.85rem;
-    padding:4px 0;
+    font-size:0.75rem;
+    padding:3px 0;
     display:flex;
     align-items:baseline;
     gap:8px;
@@ -379,7 +379,8 @@
     .ticket-head{ flex-direction:row; justify-content:space-between; align-items:flex-start; gap:0; margin-bottom:12px; }
     .ticket-head h3{ font-size:1.2rem; }
     .stamp{ font-size:0.65rem; padding:4px 9px; align-self:auto; }
-    .ing-list{ display:block; }
+    .ing-list{ margin-bottom:12px; }
+    .ing-list li{ font-size:0.85rem; padding:4px 0; }
     .ticket-foot{ padding-top:10px; font-size:0.78rem; gap:8px; }
     .glass-icon{ font-size:1.3rem; }
   }
