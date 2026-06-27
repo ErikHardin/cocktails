@@ -211,20 +211,36 @@
   }
   .bottle button:hover{ color:var(--danger); }
 
-  .pantry-box{
-    margin-top:32px;
-    background:var(--bg-card);
+  .collapsible-box{
     border:1px solid var(--line);
     border-radius:14px;
-    padding:20px 22px;
+    overflow:hidden;
+    margin-bottom:14px;
   }
-  .pantry-box h3{
+  .collapsible-toggle{
+    width:100%;
+    background:var(--bg-card);
+    border:none;
+    color:var(--cream);
+    padding:14px 18px;
     font-family:'Fraunces',serif;
     font-size:1.05rem;
-    margin:0 0 4px;
     font-weight:500;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    text-align:left;
   }
-  .pantry-box p{ color:var(--muted); font-size:0.82rem; margin:0 0 16px; }
+  .collapsible-toggle:hover{ background:var(--bg-card-2); }
+  .collapsible-toggle .chevron{ color:var(--muted); }
+  .collapsible-content{
+    display:none;
+    padding:16px 18px 18px;
+    background:var(--bg-card);
+    border-top:1px solid var(--line);
+  }
+  .collapsible-content.open{ display:block; }
   .pantry-grid{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
@@ -644,15 +660,27 @@
       <div class="suggest" id="suggestBox"></div>
     </div>
 
-    <div class="bar-groups" id="barGroups"></div>
+    <div class="collapsible-box">
+      <button class="collapsible-toggle" onclick="toggleSection('pantrySection','pantryChevron')">
+        <span>Pantry staples</span>
+        <span class="chevron" id="pantryChevron">▴</span>
+      </button>
+      <div class="collapsible-content open" id="pantrySection">
+        <div class="pantry-grid" id="pantryGrid"></div>
+        <div class="pantry-add">
+          <input type="text" id="pantryInput" placeholder="Add your own pantry item… e.g. Pineapple juice" autocomplete="off">
+          <button onclick="addPantryItem()">Add</button>
+        </div>
+      </div>
+    </div>
 
-    <div class="pantry-box">
-      <h3>Pantry staples</h3>
-      <p>Cheap stuff you grab on the way home — check off what's already in your kitchen.</p>
-      <div class="pantry-grid" id="pantryGrid"></div>
-      <div class="pantry-add">
-        <input type="text" id="pantryInput" placeholder="Add your own pantry item… e.g. Pineapple juice" autocomplete="off">
-        <button onclick="addPantryItem()">Add</button>
+    <div class="collapsible-box">
+      <button class="collapsible-toggle" onclick="toggleSection('spiritsSection','spiritsChevron')">
+        <span>My Spirits</span>
+        <span class="chevron" id="spiritsChevron">▾</span>
+      </button>
+      <div class="collapsible-content" id="spiritsSection">
+        <div class="bar-groups" id="barGroups"></div>
       </div>
     </div>
   </section>
@@ -1234,6 +1262,13 @@ function glassIcon(glassName){
   return GLASS_ICONS[glassName] || "🍸";
 }
 
+
+function toggleSection(contentId, chevronId){
+  const content = document.getElementById(contentId);
+  const chevron = document.getElementById(chevronId);
+  const isOpen = content.classList.toggle('open');
+  if(chevron) chevron.textContent = isOpen ? '▴' : '▾';
+}
 
 function renderBar(){
   const groups = {};
