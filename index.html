@@ -757,9 +757,9 @@
     <div class="collapsible-box">
       <button class="collapsible-toggle" onclick="toggleSection('pantrySection','pantryChevron')">
         <span>Pantry staples</span>
-        <span class="chevron" id="pantryChevron">▴</span>
+        <span class="chevron" id="pantryChevron">▾</span>
       </button>
-      <div class="collapsible-content open" id="pantrySection">
+      <div class="collapsible-content" id="pantrySection">
         <div class="pantry-grid" id="pantryGrid"></div>
         <div class="pantry-add">
           <input type="text" id="pantryInput" placeholder="Add your own pantry item… e.g. Pineapple juice" autocomplete="off">
@@ -1217,7 +1217,7 @@ let bar = [...DEFAULT_BAR]; // array of bottle names — overwritten once Fireba
 let liquorDb = [...LIQUOR_DB]; // overwritten by Firebase; LIQUOR_DB is the seed
 let pantry = {};
 PANTRY_ITEMS.forEach(p => pantry[p] = PANTRY_DEFAULT_CHECKED.includes(p));
-let currentFilter = "all";
+let currentFilter = "ready";
 let currentSpirit = "all";
 let pendingSpirit = "all";
 let spiritFilterOpen = false;
@@ -1557,7 +1557,7 @@ const FILTERS = [
   {key:"missing", label:"Need a bottle"},
 ];
 document.getElementById('filterRow').innerHTML = FILTERS.map(f =>
-  `<button data-key="${f.key}" class="${f.key==='all'?'active':''}">${f.label}</button>`
+  `<button data-key="${f.key}" class="${f.key===currentFilter?'active':''}">${f.label}</button>`
 ).join('');
 document.querySelectorAll('#filterRow button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
