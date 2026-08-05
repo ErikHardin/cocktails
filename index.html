@@ -711,6 +711,27 @@
   }
   .add-confirm-btn:hover{ filter:brightness(1.08); }
   .modal-card .suggest{ right:0; top:calc(100% + 4px); }
+
+  .modal-share-btn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:var(--amber);
+    border:none;
+    color:#1a1512;
+    padding:13px;
+    border-radius:10px;
+    font-family:'Inter',sans-serif;
+    font-size:0.92rem;
+    font-weight:600;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    margin-top:8px;
+  }
+  .modal-share-btn:hover{ filter:brightness(1.08); }
+  .modal-share-btn .share-icon{ font-size:1.05rem; line-height:1; }
 </style>
 </head>
 <body>
@@ -1678,8 +1699,56 @@ function openCocktailModal(name){
     <ol class="modal-steps">
       ${c.instructions.map(step => `<li>${step}</li>`).join('')}
     </ol>
+    <button class="modal-share-btn" onclick="shareCocktail('${c.name.replace(/'/g,"\\'")}')">
+      <span class="share-icon">📤</span> Share recipe
+    </button>
   `;
   document.getElementById('modalOverlay').classList.add('show');
+}
+
+// Build a plain-text version of a recipe, nicely formatted for a text message.
+function buildRecipeText(c){
+  const lines = [];
+  lines.push(`🍸 ${c.name}`);
+  lines.push('');
+  let meta = `Glass: ${c.glass}`;
+  if(c.garnish && c.garnish !== 'None') meta += ` · Garnish: ${c.garnish}`;
+  lines.push(meta);
+  lines.push('');
+  lines.push('Ingredients:');
+  c.ingredients.forEach(ing => {
+    lines.push(`• ${ing.label}${ing.amount ? ' — ' + ing.amount : ''}`);
+  });
+  lines.push('');
+  lines.push('Method:');
+  c.instructions.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
+  lines.push('');
+  lines.push('— from The Hardin Bar');
+  return lines.join('\n');
+}
+
+async function shareCocktail(name){
+  const c = [...COCKTAILS, ...AI_COCKTAILS].find(c => c.name === name);
+  if(!c) return;
+  const text = buildRecipeText(c);
+
+  // Preferred on iPhone: native share sheet (Messages, Mail, etc.).
+  if(navigator.share){
+    try {
+      await navigator.share({ title: c.name, text });
+      return;
+    } catch(err){
+      // User cancelled the share sheet — do nothing.
+      if(err && err.name === 'AbortError') return;
+      // Otherwise fall through to the SMS fallback.
+    }
+  }
+
+  // Fallback: open a new text message pre-filled with the recipe.
+  // iOS uses `sms:&body=`, most other platforms accept `sms:?body=`.
+  const isAppleDevice = /iP(hone|ad|od)|Mac/i.test(navigator.userAgent);
+  const sep = isAppleDevice ? '&' : '?';
+  window.location.href = `sms:${sep}body=${encodeURIComponent(text)}`;
 }
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('show');
